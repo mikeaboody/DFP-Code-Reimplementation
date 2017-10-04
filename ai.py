@@ -1,4 +1,5 @@
 import numpy as np 
+import json
 
 class Observation(object):
     """
@@ -20,11 +21,30 @@ class Agent(object):
     N: # of points subsampled during training
     k: number of new experiences to update prediction parameters
     temp_offsets: temporal offsets
-    g_train: fixed goal vector (TODO variable goals) for training (MUST MATCH len(temporal_offsets) * # of measurements)
+    g_train: fixed goal vector (TODO variable goals) for training
     eps_init: initial probability of random action 
     eps_decay: fixed schedule for which eps decays
+
+    all of these are set by a config
     """
-    pass
+
+    def __init__(self, agent_config):
+        self.load_agent_config(agent_config)
+
+    def load_agent_config(self, json_filename):
+        with open(json_filename) as json_data_file:
+            data = json.load(json_data_file)
+            for key in data:
+                if isinstance(data[key], list):
+                    setattr(self, key, np.array(data[key]))
+                else:
+                    setattr(self, key, data[key])
+
+    def add_experience(obs):
+        pass
+
+    def act():
+        pass
 
 class PerceptionModule(object):
     pass
