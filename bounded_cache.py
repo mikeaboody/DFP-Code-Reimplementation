@@ -1,9 +1,9 @@
 import numpy as np
 
 class BoundedCache(object):
-    """Efficient cache of last 'capacity' nump arrays. Makes use of clock algorithm 
+    """Efficient cache of last 'capacity' numpy arrays. Makes use of clock algorithm 
        but with no notion of reference bits.
-       
+
        Can be used for experience memory and temporal offsets.
     """
     def __init__(self, capacity):
@@ -28,8 +28,6 @@ class BoundedCache(object):
         indeces = np.random.choice(self.size, k, replace=True)
         return self.np_arrs[indeces]
 
-    def temporal_offsets(self, offsets):
-        #not allowed to ask for offset greater than number of points in memory
-        assert max(offsets) <= self.size
-        indeces = (self.clock_hand - np.array(offsets)) % self.size
+    def index_from_back(self, offsets):
+        indeces = (self.clock_hand + np.array(offsets)) % self.size
         return self.np_arrs[indeces]
