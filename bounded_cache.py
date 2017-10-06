@@ -1,10 +1,11 @@
 import numpy as np
+from util import get_at_indeces
 
 class BoundedCache(object):
     """Efficient cache of last 'capacity' items. Makes use of clock algorithm 
        but with no notion of reference bits.
 
-       Can be used for experience memory and temporal offsets.
+       Can be used for experience memory and for calculating temporal offsets.
     """
     def __init__(self, capacity):
         self.capacity = capacity
@@ -36,7 +37,3 @@ class BoundedCache(object):
 
     def at_capacity(self):
         return self.size == self.capacity
-
-
-def get_at_indeces(lst, indeces):
-    return [lst[i] for i in indeces]
