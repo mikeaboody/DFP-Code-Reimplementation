@@ -8,15 +8,15 @@ class Network(object):
 		self.num_actions = num_actions
 		self.network = self.build_network()
 
-	def build_network():
+	def build_network(self):
 		pass
 
-	def update_weights(exps):
+	def update_weights(self, exps):
 		pass
 
-	def loss_func(exps):
+	def loss_func(self, exps):
 		pass
 
-	def predict(obs, goal):
+	def predict(self, obs, goal):
 		pass
 	
