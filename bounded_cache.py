@@ -1,7 +1,7 @@
 import numpy as np
 
 class BoundedCache(object):
-    """Efficient cache of last 'capacity' numpy arrays. Makes use of clock algorithm 
+    """Efficient cache of last 'capacity' items. Makes use of clock algorithm 
        but with no notion of reference bits.
 
        Can be used for experience memory and temporal offsets.
@@ -10,24 +10,33 @@ class BoundedCache(object):
         self.capacity = capacity
         self.size = 0
         self.clock_hand = 0
-        self.np_arrs = np.array([])
+        self.items = []
 
-    def add(self, np_arr):
+    def add(self, item):
         if self.size < self.capacity:
-            if self.size == 0:
-                self.np_arrs = np.array([np_arr])
-            else:
-                self.np_arrs = np.append(self.np_arrs, np.array([np_arr]), axis=0)
+            self.items.append(item)
             self.size += 1
         else:
-            self.np_arrs[self.clock_hand] = np_arr
+            ret = self.items[self.clock_hand]
+            self.items[self.clock_hand] = item
             self.clock_hand = (self.clock_hand + 1) % self.capacity
-        
 
     def sample(self, k):
         indeces = np.random.choice(self.size, k, replace=True)
-        return self.np_arrs[indeces]
+        return get_at_indeces(self.items, indeces)
 
-    def index_from_back(self, offsets):
-        indeces = (self.clock_hand + np.array(offsets)) % self.size
-        return self.np_arrs[indeces]
+    def index_from_back(self, indeces):
+        if isinstance(indeces, int):
+            indeces = [indeces]
+        indeces_ = (self.clock_hand + np.array(indeces)) % self.size
+        return get_at_indeces(self.items, indeces_)
+
+    def get_all(self):
+        return self.items[:]
+
+    def at_capacity(self):
+        return self.size == self.capacity
+
+
+def get_at_indeces(lst, indeces):
+    return [lst[i] for i in indeces]
