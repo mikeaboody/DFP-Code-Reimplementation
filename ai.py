@@ -72,3 +72,6 @@ class Agent(object):
         action_indeces = list(range(num_actions))
         max_index = max(action_indeces, key=lambda i: action_predictions[i].dot(goal))
         return self.possible_actions[max_index]
+
+    def signal_episode_end(self):
+        self.recent_obs_act_pairs = BoundedCache(max(self.temp_offsets) + 1)
