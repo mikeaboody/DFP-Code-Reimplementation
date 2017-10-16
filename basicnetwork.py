@@ -1,11 +1,11 @@
 from network import Network
 import numpy as np
 import pandas as pd
-from keras.models import Sequential
+from keras.models import Model
 from keras import backend as K
 from keras.models import Sequential
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import Activation, Dropout, Flatten, Dense, Merge, Add
+from keras.layers import Convolution2D, MaxPooling2D, Input
+from keras.layers import Activation, Dropout, Flatten, Dense, concatenate, Add
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 
@@ -16,8 +16,8 @@ class basicNetwork(Network):
 	to implement the network in different frameworks. All a network needs
 	to do is implement these methods.
 	"""
-	def __init__(self):
-		super(basicNetwork, self).__init__()
+	def __init__(self, num_actions):
+		super(basicNetwork, self).__init__(num_actions)
 		# put arguments here
 
 	# override
@@ -31,7 +31,7 @@ class basicNetwork(Network):
 		perception_conv = Convolution2D(64, 3, strides=1)(perception_input)
 		perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
 		perception_flattened = Flatten()(perception_conv)
-		perception_fc = Dense(512, activation="linear"))(perception_flattened)
+		perception_fc = Dense(512, activation="linear")(perception_flattened)
 		# measurement layer
 		measurement_input = Input(shape=measurements_shape)
 		measurement_flatten = Flatten()(measurement_input)
@@ -49,10 +49,10 @@ class basicNetwork(Network):
 		goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
 		goals_fc = Dense(128, activation="linear")(goals_fc)
 		# merge together
-		percep = Flatten()(perception_fc)
-		mrment = Flatten()(measurements_fc)
-		goals = Flatten()(goals_fc)
-		mrg_j= Merge(mode='concat')([percep,mrment,goals])
+		# percep = Flatten()(perception_fc)
+		# mrment = Flatten()(measurements_fc)
+		# goals = Flatten()(goals_fc)
+		mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
 		#expectations
 		expectation = Dense(512)(mrg_j)
 		expectation = LeakyReLU(alpha=0.2)(expectation)
@@ -60,11 +60,12 @@ class basicNetwork(Network):
 		#action
 		action = Dense(512)(mrg_j)
 		action = LeakyReLU(alpha=0.2)(action)
-		action = Dense(3*6*256, activation="linear")(action)
+		action = Dense(3*6*self.num_actions, activation="linear")(action)
 		#concat expectations for number of actions there are
-		expectation = Merge(mode='concat')([expectation]*256)
+		expectation = concatenate([expectation]*self.num_actions)
 		# sum expectations with action
-		expectation_action_sum = Add([action, expectation])
+		expectation_action_sum = Add()([action, expectation])
+		model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
 		adam = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
 		model.compile(loss='mean_squared_error', optimizer=adam)
 
@@ -81,4 +82,6 @@ class basicNetwork(Network):
 
 	def predict(self, obs, goal):
 		pass
-	
+
+bn = basicNetwork(3)
+bn.build_network((84,84,1), (3,1), (18,1))
