@@ -16,9 +16,14 @@ class basicNetwork(Network):
 	to implement the network in different frameworks. All a network needs
 	to do is implement these methods.
 	"""
-	def __init__(self, num_actions):
+	def __init__(self, num_actions, optimizer="Adam"):
 		super(basicNetwork, self).__init__(num_actions)
 		# put arguments here
+		self.optimizer = optimizer
+
+
+	def is_network_defined(self):
+		return self.model != None
 
 	# override
 	def build_network(self, perception_shape, measurements_shape, goals_shape):
@@ -63,16 +68,18 @@ class basicNetwork(Network):
 		# sum expectations with action
 		expectation_action_sum = Add()([action, expectation])
 		self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
-		adam = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-		self.model.compile(loss='mean_squared_error', optimizer=adam)
+		opt = None
+		if self.optimizer == "Adam":
+			opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
+		self.model.compile(loss='mean_squared_error', optimizer=opt)
 
 	def update_weights(self, exps):
+		# please make sure that exps is a batch of the proper size (in basic it's 64)
 		# note must change to have it NOT reset learning rate as it currently resets it
 		# also need to double check how exps is structured not sure rn
 		x_train = exps[:len(exps)-1]
 		y_train = exps[len(exps)-1:]
-		# either just put x_train in and let batch be taken care of here or modify this a bit
-		self.model.fit(x_train, y_train, batch_size=64)
+		self.model.train_on_batch(x_train, y_train)
 
 	def loss_func(self, exps):
 		pass
