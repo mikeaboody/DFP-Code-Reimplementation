@@ -11,79 +11,87 @@ from keras.optimizers import Adam
 
 
 class basicNetwork(Network):
-	"""
-	A wrapper class for our neural network. This will make it easier
-	to implement the network in different frameworks. All a network needs
-	to do is implement these methods.
-	"""
-	def __init__(self, num_actions, optimizer="Adam"):
-		super(basicNetwork, self).__init__(num_actions)
-		# put arguments here
-		self.optimizer = optimizer
+    """
+    A wrapper class for our neural network. This will make it easier
+    to implement the network in different frameworks. All a network needs
+    to do is implement these methods.
+    """
+    def __init__(self, num_actions, optimizer="Adam"):
+        super(basicNetwork, self).__init__(num_actions)
+        # put arguments here
+        self.optimizer = optimizer
+        self.perception_shape = (84, 84, 1)
+        self.measurements_shape = (3, 1)
+        self.goals_shape = (18, 1)
 
+    def is_network_defined(self):
+        return self.model != None
 
-	def is_network_defined(self):
-		return self.model != None
+    def set_perception_shape(shape):
+        self.perception_shape = shape
 
-	# override
-	def build_network(self, perception_shape, measurements_shape, goals_shape):
-		# perception layer
-		perception_input = Input(shape=perception_shape)
-		perception_conv = Convolution2D(32, 8, strides=4, input_shape=perception_shape)(perception_input)
-		perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
-		perception_conv = Convolution2D(64, 4, strides=2)(perception_input)
-		perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
-		perception_conv = Convolution2D(64, 3, strides=1)(perception_input)
-		perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
-		perception_flattened = Flatten()(perception_conv)
-		perception_fc = Dense(512, activation="linear")(perception_flattened)
-		# measurement layer
-		measurement_input = Input(shape=measurements_shape)
-		measurement_flatten = Flatten()(measurement_input)
-		measurements_fc = Dense(128)(measurement_flatten)
-		measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
-		measurements_fc = Dense(128)(measurements_fc)
-		measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
-		measurements_fc = Dense(128, activation="linear")(measurements_fc)
-		# goals layer
-		goal_input = Input(shape=goals_shape)
-		goals_flatten = Flatten()(goal_input)
-		goals_fc = Dense(128)(goals_flatten)
-		goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
-		goals_fc = Dense(128)(goals_fc)
-		goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
-		goals_fc = Dense(128, activation="linear")(goals_fc)
-		# merge together
-		mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
-		#expectations
-		expectation = Dense(512)(mrg_j)
-		expectation = LeakyReLU(alpha=0.2)(expectation)
-		expectation = Dense(3*6, activation="linear")(expectation)
-		#action
-		action = Dense(512)(mrg_j)
-		action = LeakyReLU(alpha=0.2)(action)
-		action = Dense(3*6*self.num_actions, activation="linear")(action)
-		#concat expectations for number of actions there are
-		expectation = concatenate([expectation]*self.num_actions)
-		# sum expectations with action
-		expectation_action_sum = Add()([action, expectation])
-		self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
-		opt = None
-		if self.optimizer == "Adam":
-			opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-		self.model.compile(loss='mean_squared_error', optimizer=opt)
+    def set_measurement_shape(shape):
+        self.measurements_shape = shape
 
-	def update_weights(self, exps):
-		# please make sure that exps is a batch of the proper size (in basic it's 64)
-		# also need to double check how exps is structured not sure rn
-		x_train = exps[:len(exps)-1]
-		y_train = exps[len(exps)-1:]
-		self.model.train_on_batch(x_train, y_train)
+    def set_goals_shape(shape):
+        self.goals_shape = shape
 
-	def loss_func(self, exps):
-		pass
+    # override
+    def build_network(self):
+        # perception layer
+        perception_input = Input(shape=self.perception_shape)
+        perception_conv = Convolution2D(32, 8, strides=4, input_shape=self.perception_shape)(perception_input)
+        perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
+        perception_conv = Convolution2D(64, 4, strides=2)(perception_input)
+        perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
+        perception_conv = Convolution2D(64, 3, strides=1)(perception_input)
+        perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
+        perception_flattened = Flatten()(perception_conv)
+        perception_fc = Dense(512, activation="linear")(perception_flattened)
+        # measurement layer
+        measurement_input = Input(shape=self.measurements_shape)
+        measurement_flatten = Flatten()(measurement_input)
+        measurements_fc = Dense(128)(measurement_flatten)
+        measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
+        measurements_fc = Dense(128)(measurements_fc)
+        measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
+        measurements_fc = Dense(128, activation="linear")(measurements_fc)
+        # goals layer
+        goal_input = Input(shape=self.goals_shape)
+        goals_flatten = Flatten()(goal_input)
+        goals_fc = Dense(128)(goals_flatten)
+        goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
+        goals_fc = Dense(128)(goals_fc)
+        goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
+        goals_fc = Dense(128, activation="linear")(goals_fc)
+        # merge together
+        mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
+        #expectations
+        expectation = Dense(512)(mrg_j)
+        expectation = LeakyReLU(alpha=0.2)(expectation)
+        expectation = Dense(3*6, activation="linear")(expectation)
+        #action
+        action = Dense(512)(mrg_j)
+        action = LeakyReLU(alpha=0.2)(action)
+        action = Dense(3*6*self.num_actions, activation="linear")(action)
+        #concat expectations for number of actions there are
+        expectation = concatenate([expectation]*self.num_actions)
+        # sum expectations with action
+        expectation_action_sum = Add()([action, expectation])
+        self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
+        opt = None
+        if self.optimizer == "Adam":
+            opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
+        self.model.compile(loss='mean_squared_error', optimizer=opt)
 
-	def predict(self, obs, goal):
+    def update_weights(self, exps):
+        # please make sure that exps is a batch of the proper size (in basic it's 64)
+        # also need to double check how exps is structured not sure rn
+        x_train = exps[:len(exps)-1]
+        y_train = exps[len(exps)-1:]
+        self.model.train_on_batch(x_train, y_train)
+
+    def predict(self, obs, goal):
         """
         obs is of the form <s_t, m_t>, where s_t is raw sensory input and
         m_t is a set of measurements
@@ -103,7 +111,7 @@ class basicNetwork(Network):
 
 
 bn = basicNetwork(3)
-bn.build_network((84,84,1), (3,1), (18,1))
+bn.build_network()
 
 
 
