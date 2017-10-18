@@ -19,6 +19,7 @@ class basicNetwork(Network):
 	def __init__(self, num_actions):
 		super(basicNetwork, self).__init__(num_actions)
 		# put arguments here
+                self.model = build_network((84, 84, 1), (3, 1), (18, 1))
 
 	# override
 	def build_network(self, perception_shape, measurements_shape, goals_shape):
@@ -65,9 +66,10 @@ class basicNetwork(Network):
 		expectation = concatenate([expectation]*self.num_actions)
 		# sum expectations with action
 		expectation_action_sum = Add()([action, expectation])
-		model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
+		self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
 		adam = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-		model.compile(loss='mean_squared_error', optimizer=adam)
+		self.model.compile(loss='mean_squared_error', optimizer=adam)
+                return self.model
 
 	def update_weights(self, exps):
 		# note must change to have it NOT reset learning rate as it currently resets it
@@ -75,13 +77,65 @@ class basicNetwork(Network):
 		x_train = exps[:len(exps)-1]
 		y_train = exps[len(exps)-1:]
 		# either just put x_train in and let batch be taken care of here or modify this a bit
-		model.fit(x_train, y_train, batch_size=64)
+		self.model.fit(x_train, y_train, batch_size=64)
 
 	def loss_func(self, exps):
 		pass
 
 	def predict(self, obs, goal):
-		pass
+                """
+                obs is of the form <s_t, m_t>, where s_t is raw sensory input and
+                m_t is a set of measurements
+                """
+                # assuming that obs is a vector of vectors that looks like
+                # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
+                # and goal is a vector that looks like
+                # [goal_component_0, goal_component_1, ...]
+                prediction_t_a = self.model.predict(obs + goal)
+                return self.model.predict
+
+        def choose_action(self, prediction_t_a, actions):
+                # need to implement actions... a one-hot vector?
+                action_and_action_values = [(action, np.dot(goal, prediction_t_a)) 
+                                                for action in actions]
+                return max(action_and_action_values, key=lambda x:x[1])
+
 
 bn = basicNetwork(3)
 bn.build_network((84,84,1), (3,1), (18,1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
