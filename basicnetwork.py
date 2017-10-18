@@ -20,6 +20,7 @@ class basicNetwork(Network):
         super(basicNetwork, self).__init__(num_actions)
         # put arguments here
         self.optimizer = optimizer
+        self.batch_size = 64
         self.perception_shape = (84, 84, 1)
         self.measurements_shape = (3, 1)
         self.goals_shape = (18, 1)
@@ -35,6 +36,9 @@ class basicNetwork(Network):
 
     def set_goals_shape(shape):
         self.goals_shape = shape
+
+    def set_batch_size(size):
+        self.batch_size = 64
 
     # override
     def build_network(self):
@@ -87,8 +91,33 @@ class basicNetwork(Network):
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
-        x_train = exps[:len(exps)-1]
-        y_train = exps[len(exps)-1:]
+        assert self.batch_size == exps and self.model != None
+        x_train = [[], [], []]
+        y_train = []
+        for i in range(0, self.batch_size):
+            experience = exps[i]
+            s = experience.sens()
+            m = experience.meas()
+            g = experience.goal()
+            label = experience.label()
+            x_train[0].append(s)
+            x_train[1].append(m)
+            x_train[2].append(g)
+            y_train.append(label)
+        x_train[0] = np.array(x_train[0]).reshape((self.batch_size,
+                                                self.perception_shape[0],
+                                                self.perception_shape[1],
+                                                self.perception_shape[2]))
+        x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
+                                                self.measurements_shape[0],
+                                                self.measurements_shape[1]))
+        x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
+                                                self.goals_shape[0],
+                                                self.goals_shape[1]))
+        # y train is tensor of batch size over samples (which are actions*goals length vectors)
+        y_train = np.array(y_train).reshape((self.batch_size,
+                                            self.goals_shape[0]*self.num_actions,
+                                            self.goals_shape[1]))
         self.model.train_on_batch(x_train, y_train)
 
     def predict(self, obs, goal):
@@ -100,8 +129,8 @@ class basicNetwork(Network):
         # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
         # and goal is a vector that looks like
         # [goal_component_0, goal_component_1, ...]
-        prediction_t_a = self.model.predict(obs + goal)
-        return self.model.predict
+        prediction_t_a = self.model.predict(obs, verbose=1)
+        return prediction_t_a
 
     def choose_action(self, prediction_t_a, actions):
         # need to implement actions... a one-hot vector?

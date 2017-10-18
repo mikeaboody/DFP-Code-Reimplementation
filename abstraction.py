@@ -30,4 +30,7 @@ class Experience(object):
         return np.copy(self.g)
     def label(self):
         return np.copy(self.label)
+
+
+
         
