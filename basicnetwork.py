@@ -75,7 +75,6 @@ class basicNetwork(Network):
 
 	def update_weights(self, exps):
 		# please make sure that exps is a batch of the proper size (in basic it's 64)
-		# note must change to have it NOT reset learning rate as it currently resets it
 		# also need to double check how exps is structured not sure rn
 		x_train = exps[:len(exps)-1]
 		y_train = exps[len(exps)-1:]
@@ -85,7 +84,59 @@ class basicNetwork(Network):
 		pass
 
 	def predict(self, obs, goal):
-		pass
+        """
+        obs is of the form <s_t, m_t>, where s_t is raw sensory input and
+        m_t is a set of measurements
+        """
+        # assuming that obs is a vector of vectors that looks like
+        # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
+        # and goal is a vector that looks like
+        # [goal_component_0, goal_component_1, ...]
+        prediction_t_a = self.model.predict(obs + goal)
+        return self.model.predict
+
+    def choose_action(self, prediction_t_a, actions):
+        # need to implement actions... a one-hot vector?
+        action_and_action_values = [(action, np.dot(goal, prediction_t_a)) 
+                                        for action in actions]
+        return max(action_and_action_values, key=lambda x:x[1])
+
 
 bn = basicNetwork(3)
 bn.build_network((84,84,1), (3,1), (18,1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

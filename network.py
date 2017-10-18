@@ -22,4 +22,7 @@ class Network(object):
 
 	def predict(self, obs, goal):
 		pass
+
+        def choose_action(self, actions):
+                pass
 	
