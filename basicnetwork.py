@@ -49,9 +49,6 @@ class basicNetwork(Network):
 		goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
 		goals_fc = Dense(128, activation="linear")(goals_fc)
 		# merge together
-		# percep = Flatten()(perception_fc)
-		# mrment = Flatten()(measurements_fc)
-		# goals = Flatten()(goals_fc)
 		mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
 		#expectations
 		expectation = Dense(512)(mrg_j)
@@ -65,9 +62,9 @@ class basicNetwork(Network):
 		expectation = concatenate([expectation]*self.num_actions)
 		# sum expectations with action
 		expectation_action_sum = Add()([action, expectation])
-		model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
+		self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
 		adam = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-		model.compile(loss='mean_squared_error', optimizer=adam)
+		self.model.compile(loss='mean_squared_error', optimizer=adam)
 
 	def update_weights(self, exps):
 		# note must change to have it NOT reset learning rate as it currently resets it
@@ -75,7 +72,7 @@ class basicNetwork(Network):
 		x_train = exps[:len(exps)-1]
 		y_train = exps[len(exps)-1:]
 		# either just put x_train in and let batch be taken care of here or modify this a bit
-		model.fit(x_train, y_train, batch_size=64)
+		self.model.fit(x_train, y_train, batch_size=64)
 
 	def loss_func(self, exps):
 		pass

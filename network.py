@@ -6,8 +6,12 @@ class Network(object):
 	"""
 	def __init__(self, num_actions):
 		self.num_actions = num_actions
+		self.model = None
 
 	def build_network(self):
+		"""
+			Model should be defined here
+		"""
 		pass
 
 	def update_weights(self, exps):
