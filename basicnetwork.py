@@ -6,6 +6,7 @@ from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Input
 from keras.layers import Activation, Dropout, Flatten, Dense, concatenate, Add
+from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 
@@ -78,6 +79,7 @@ class basicNetwork(Network):
         action = Dense(512)(mrg_j)
         action = LeakyReLU(alpha=0.2)(action)
         action = Dense(3*6*self.num_actions, activation="linear")(action)
+        action = BatchNormalization()(action)
         #concat expectations for number of actions there are
         expectation = concatenate([expectation]*self.num_actions)
         # sum expectations with action
