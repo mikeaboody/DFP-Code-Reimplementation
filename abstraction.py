@@ -16,11 +16,11 @@ class Experience(object):
     label which is just the temporal differences between the current
     measurements and future measurements.
     """
-    def __init__(self, obs, a, g, label):
+    def __init__(self, obs, a, g, l):
         self.obs = obs
         self.a = a
         self.g = g
-        self.label = label
+        self.l = l
 
     def sens(self):
         return np.copy(self.obs.sens)
@@ -29,7 +29,7 @@ class Experience(object):
     def goal(self):
         return np.copy(self.g)
     def label(self):
-        return np.copy(self.label)
+        return np.copy(self.l)
 
 
 

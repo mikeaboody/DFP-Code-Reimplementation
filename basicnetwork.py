@@ -1,4 +1,5 @@
 from network import Network
+from abstraction import *
 import numpy as np
 import pandas as pd
 from keras.models import Model
@@ -93,7 +94,7 @@ class basicNetwork(Network):
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
-        assert self.batch_size == exps and self.model != None
+        assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], []]
         y_train = []
         for i in range(0, self.batch_size):
@@ -113,6 +114,7 @@ class basicNetwork(Network):
         x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
                                                 self.measurements_shape[0],
                                                 self.measurements_shape[1]))
+        import pdb; pdb.set_trace()
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
                                                 self.goals_shape[0],
                                                 self.goals_shape[1]))
@@ -131,7 +133,7 @@ class basicNetwork(Network):
         # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
         # and goal is a vector that looks like
         # [goal_component_0, goal_component_1, ...]
-        prediction_t_a = self.model.predict(obs, verbose=1)
+        prediction_t_a = self.model.predict([obs.sens, obs.meas, goal], verbose=1)
         return prediction_t_a
 
     def choose_action(self, prediction_t_a, actions):
@@ -144,38 +146,22 @@ class basicNetwork(Network):
 bn = basicNetwork(3)
 bn.build_network()
 
+def create_obs_goal_pair(bn):
+    sens = np.random.random_sample(size=(10,84,84,1))
+    meas = np.random.random_sample(size=(10,3,1))
+    goal = np.random.random_sample(size=(10,18,1))
+    obs = Observation(sens, meas)
+    return obs, goal
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+def create_experience(bn):
+    sens = np.random.random_sample(size=(84,84,1))
+    meas = np.random.random_sample(size=(3,1))
+    goal = np.random.random_sample(size=(18,1))
+    label = np.random.random_sample(size=(18,1))
+    obs = Observation(sens, meas)
+    exp = Experience(obs, 1, goal, label)
+    return exp
+experiences = [create_experience(bn) for _ in range(64)]
+import pdb; pdb.set_trace()
+bn.update_weights(experiences)
 
