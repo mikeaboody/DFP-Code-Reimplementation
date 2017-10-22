@@ -15,7 +15,7 @@ from keras.optimizers import Adam
 def custom_objective(y_true, y_pred):
     # yt = K.flatten(y_true)
     # yp = K.flatten(y_pred)
-    return -K.dot(y_true,y_pred)
+    return -K.dot(y_true,K.transpose(y_pred))
 
 
 def pad_label(label, num_actions):
