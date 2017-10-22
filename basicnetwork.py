@@ -2,6 +2,7 @@ from network import Network
 from abstraction import *
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from keras.models import Model
 from keras import backend as K
 from keras.models import Sequential
@@ -11,6 +12,22 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 
+def custom_objective(y_true, y_pred):
+    # yt = K.flatten(y_true)
+    # yp = K.flatten(y_pred)
+    return -K.dot(y_true,y_pred)
+
+
+def pad_label(label, num_actions):
+    # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
+    # assume action is 0-indexed
+    # this way dot product  0 out everything that's irrelevant
+    goal = label[:len(label) - 1].flatten()
+    action_index = int(label[len(label) - 1]*len(goal))
+    new_label = np.zeros(len(goal)*num_actions)
+    new_label[action_index:action_index+len(goal)] = goal
+    new_label = new_label
+    return new_label
 
 class basicNetwork(Network):
     """
@@ -89,7 +106,7 @@ class basicNetwork(Network):
         opt = None
         if self.optimizer == "Adam":
             opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-        self.model.compile(loss='mean_squared_error', optimizer=opt)
+        self.model.compile(loss=custom_objective, optimizer=opt)
 
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
@@ -102,7 +119,7 @@ class basicNetwork(Network):
             s = experience.sens()
             m = experience.meas()
             g = experience.goal()
-            label = experience.label()
+            label = pad_label(experience.label(), self.num_actions)
             x_train[0].append(s)
             x_train[1].append(m)
             x_train[2].append(g)
@@ -114,14 +131,12 @@ class basicNetwork(Network):
         x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
                                                 self.measurements_shape[0],
                                                 self.measurements_shape[1]))
-        import pdb; pdb.set_trace()
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
                                                 self.goals_shape[0],
                                                 self.goals_shape[1]))
         # y train is tensor of batch size over samples (which are actions*goals length vectors)
         y_train = np.array(y_train).reshape((self.batch_size,
-                                            self.goals_shape[0]*self.num_actions,
-                                            self.goals_shape[1]))
+                                            self.goals_shape[0]*self.num_actions))
         self.model.train_on_batch(x_train, y_train)
 
     def predict(self, obs, goal):
@@ -140,10 +155,10 @@ class basicNetwork(Network):
         # need to implement actions... a one-hot vector?
         action_and_action_values = [(action, np.dot(goal, prediction_t_a)) 
                                         for action in actions]
-        return max(action_and_action_values, key=lambda x:x[1])
+        return max(custom_objective, key=lambda x:x[1])
 
 
-bn = basicNetwork(3)
+bn = basicNetwork(256)
 bn.build_network()
 
 def create_obs_goal_pair(bn):
@@ -157,11 +172,12 @@ def create_experience(bn):
     sens = np.random.random_sample(size=(84,84,1))
     meas = np.random.random_sample(size=(3,1))
     goal = np.random.random_sample(size=(18,1))
-    label = np.random.random_sample(size=(18,1))
+    # last value indicate index of action
+    label = np.random.random_sample(size=(18 + 1))
     obs = Observation(sens, meas)
     exp = Experience(obs, 1, goal, label)
     return exp
 experiences = [create_experience(bn) for _ in range(64)]
-import pdb; pdb.set_trace()
+# import pdb; pdb.set_trace()
 bn.update_weights(experiences)
 
