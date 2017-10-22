@@ -2,20 +2,19 @@ from network import Network
 from abstraction import *
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from keras.models import Model
 from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Input
-from keras.layers import Activation, Dropout, Flatten, Dense, concatenate, Add
+from keras.layers import Activation, Dropout, Flatten, Dense, concatenate, Add, Multiply
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 
-def custom_objective(y_true, y_pred):
-    # yt = K.flatten(y_true)
-    # yp = K.flatten(y_pred)
-    return -K.dot(y_true,K.transpose(y_pred))
+
+# def custom_objective(y_true, y_pred):
+#     print(y_pred.eval(session=tf.Session()))
+#     return -K.dot(y_true,K.transpose(y_pred))
 
 
 def pad_label(label, num_actions):
@@ -25,9 +24,10 @@ def pad_label(label, num_actions):
     goal = label[:len(label) - 1].flatten()
     action_index = int(label[len(label) - 1]*len(goal))
     new_label = np.zeros(len(goal)*num_actions)
+    mask = np.zeros(len(goal)*num_actions)
     new_label[action_index:action_index+len(goal)] = goal
-    new_label = new_label
-    return new_label
+    mask[action_index:action_index+len(goal)] = [1]*len(goal)
+    return new_label, mask
 
 class basicNetwork(Network):
     """
@@ -43,6 +43,7 @@ class basicNetwork(Network):
         self.perception_shape = (84, 84, 1)
         self.measurements_shape = (3, 1)
         self.goals_shape = (18, 1)
+        self.action_mask_shape = (3*6*self.num_actions,)
 
     def is_network_defined(self):
         return self.model != None
@@ -102,27 +103,30 @@ class basicNetwork(Network):
         expectation = concatenate([expectation]*self.num_actions)
         # sum expectations with action
         expectation_action_sum = Add()([action, expectation])
-        self.model = Model(inputs=[perception_input, measurement_input, goal_input], outputs=expectation_action_sum)
+        action_mask_layer = Input(shape=self.action_mask_shape)
+        expectation_action_sum = Multiply()([action_mask_layer, expectation_action_sum])
+        self.model = Model(inputs=[perception_input, measurement_input, goal_input, action_mask_layer], outputs=expectation_action_sum)
         opt = None
         if self.optimizer == "Adam":
             opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
-        self.model.compile(loss=custom_objective, optimizer=opt)
+        self.model.compile(loss='mean_squared_error', optimizer=opt)
 
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
         assert self.batch_size == len(exps) and self.model != None
-        x_train = [[], [], []]
+        x_train = [[], [], [], []]
         y_train = []
         for i in range(0, self.batch_size):
             experience = exps[i]
             s = experience.sens()
             m = experience.meas()
             g = experience.goal()
-            label = pad_label(experience.label(), self.num_actions)
+            label, mask = pad_label(experience.label(), self.num_actions)
             x_train[0].append(s)
             x_train[1].append(m)
             x_train[2].append(g)
+            x_train[3].append(mask)
             y_train.append(label)
         x_train[0] = np.array(x_train[0]).reshape((self.batch_size,
                                                 self.perception_shape[0],
@@ -134,10 +138,12 @@ class basicNetwork(Network):
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
                                                 self.goals_shape[0],
                                                 self.goals_shape[1]))
+        x_train[3] = np.array(x_train[3]).reshape((self.batch_size,
+                                                self.action_mask_shape[0]))
         # y train is tensor of batch size over samples (which are actions*goals length vectors)
         y_train = np.array(y_train).reshape((self.batch_size,
                                             self.goals_shape[0]*self.num_actions))
-        self.model.train_on_batch(x_train, y_train)
+        print(self.model.train_on_batch(x_train, y_train))
 
     def predict(self, obs, goal):
         """
@@ -148,7 +154,8 @@ class basicNetwork(Network):
         # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
         # and goal is a vector that looks like
         # [goal_component_0, goal_component_1, ...]
-        prediction_t_a = self.model.predict([obs.sens, obs.meas, goal], verbose=1)
+        num_s = len(obs.sens[0])
+        prediction_t_a = self.model.predict([obs.sens, obs.meas, goal, np.ones((num_s, 3*6*self.num_actions))], verbose=1)
         return prediction_t_a
 
     def choose_action(self, prediction_t_a, actions):
@@ -180,4 +187,7 @@ def create_experience(bn):
 experiences = [create_experience(bn) for _ in range(64)]
 # import pdb; pdb.set_trace()
 bn.update_weights(experiences)
+a = create_obs_goal_pair(bn)
+bn.predict(a[0], a[1])
+
 
