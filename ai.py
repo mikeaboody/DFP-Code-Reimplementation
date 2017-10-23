@@ -6,8 +6,6 @@ from abstraction import *
 from network import Network
 from bounded_cache import BoundedCache
 
-expected_config_keys = [u'M', u'N', u'k', u'g_train', u'temp_offsets', u'network_backing_file', u'network_save_period']
-
 class Agent(object):
     """
     M: # of points in memory
@@ -19,26 +17,25 @@ class Agent(object):
     all of these are set by a config
     """
 
-    def __init__(self, agent_config, possible_actions, network_builder, eps_func):
-        self.load_agent_config(agent_config)
+    def __init__(self, agent_params, possible_actions, network_builder):
+        self.load_agent_params(agent_params)
         self.recent_obs_act_pairs = BoundedCache(max(self.temp_offsets) + 1)
         self.experience_memory = BoundedCache(self.M)
         self.num_exp_added = 0
         self.eps = 1
-        self.eps_func = eps_func
-        self.network = network_builder()
         self.possible_actions = possible_actions
         self.num_times_weights_updated = 0
+        self.network = network_builder()
 
-    def load_agent_config(self, json_filename):
-        with open(json_filename) as json_data_file:
-            data = json.load(json_data_file)
-            assert set(expected_config_keys) == set(data.keys())
-            for key in data:
-                if isinstance(data[key], list):
-                    setattr(self, key, np.array(data[key]))
-                else:
-                    setattr(self, key, data[key])
+    def load_agent_params(self, agent_params):
+        self.M = agent_params["M"]
+        self.N = agent_params["N"]
+        self.k = agent_params["k"]
+        self.temp_offsets = agent_params["temp_offsets"]
+        self.g_train = np.array(agent_params["g_train"])
+        self.network_backing_file = agent_params["network_backing_file"]
+        self.network_save_period = agent_params["network_save_period"]
+        self.eps_decay_func = agent_params["eps_decay_func"]
 
     def observe(self, obs, action):
         self.recent_obs_act_pairs.add((obs, action))
@@ -58,7 +55,7 @@ class Agent(object):
             if self.network_save_period > 0 and self.num_times_weights_updated % self.network_save_period  == 0:
                 self.network.save_network()
 
-            self.eps = max(self.eps_func(self.num_exp_added), 0)
+            self.eps = max(self.eps_decay_func(self.num_exp_added), 0)
 
     def act(self, obs=None, training=False, goal=None):
         assert training or goal != None
