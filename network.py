@@ -6,8 +6,7 @@ class Network(object):
 	to implement the network in different frameworks. All a network needs
 	to do is implement these methods.
 	"""
-	def __init__(self, num_actions, backing_file_name, load_from_backing_file):
-		self.num_actions = num_actions
+	def __init__(self, network_params, backing_file_name, load_from_backing_file):
 		self.model = None
 		self.backing_file_name = backing_file_name
 		self.load_from_backing_file = load_from_backing_file
@@ -34,8 +33,8 @@ class BlankNetwork(object):
 	"""
 	Completely blank network for testing purposes
 	"""
-	def __init__(self, num_actions, backing_file_name, load_from_backing_file):
-		self.num_actions = num_actions
+	def __init__(self, network_params, backing_file_name, load_from_backing_file):
+		self.num_actions = network_params["num_actions"]
 		self.model = None
 		self.backing_file_name = backing_file_name
 		self.build_network(backing_file_name)
@@ -62,5 +61,5 @@ class BlankNetwork(object):
 	def save_network(self):
 		print("Saving network")
 
-def blank_network_builder(num_actions):
-	return lambda: BlankNetwork(num_actions, "", False)
+def blank_network_builder(network_params):
+	return lambda: BlankNetwork(network_params, "", False)

@@ -8,11 +8,13 @@ from abstraction import *
 from util import *
 #agent_params for the agent
 from doom_config import agent_params
+from doom_config import network_params
 
 def run_basic():
 	possible_actions = [[1,0,0], [0,1,0], [0,0,1]]
+	network_params["num_actions"] = 3
 	doom_simulator = create_basic_simulator()
-	agent = Agent(agent_params, possible_actions, blank_network_builder(len(possible_actions)))
+	agent = Agent(agent_params, possible_actions, blank_network_builder(network_params))
 	agent.eps = 0
 	img = None
 	meas = None
@@ -40,7 +42,7 @@ def run_basic():
 def train(num_iterations):
 	doom_simulator = create_basic_simulator()
 	possible_actions = enumerate_action_one_hots(3)
-	agent = Agent(agent_params, possible_actions, basicNetwork_builder(len(possible_actions)))
+	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
 
 	img = None
 	meas = None
@@ -66,7 +68,7 @@ def test(num_iterations):
 	doom_simulator = create_basic_simulator()
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
-	agent = Agent(agent_params, possible_actions, basicNetwork_builder(len(possible_actions)))
+	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
 
 	img = None
 	meas = None
@@ -86,4 +88,4 @@ def test(num_iterations):
 	doom_simulator.close_game()
 
 
-test(100)
+train(100)

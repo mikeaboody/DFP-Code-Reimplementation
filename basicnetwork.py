@@ -38,9 +38,11 @@ class basicNetwork(Network):
     to implement the network in different frameworks. All a network needs
     to do is implement these methods.
     """
-    def __init__(self, num_actions, backing_file=None, load_from_backing_file=False, optimizer="Adam"):
-        super(basicNetwork, self).__init__(num_actions, backing_file, load_from_backing_file)
-        # put arguments here
+    def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam"):
+        super(basicNetwork, self).__init__(network_params, backing_file, load_from_backing_file)
+        self.num_actions = network_params["num_actions"]
+        self.preprocess_img = network_params["preprocess_img"]
+        self.preprocess_meas = network_params["preprocess_meas"]
         self.optimizer = optimizer
         self.batch_size = 64
         self.perception_shape = (84, 84, 1)
@@ -128,8 +130,8 @@ class basicNetwork(Network):
         y_train = []
         for i in range(0, self.batch_size):
             experience = exps[i]
-            s = experience.sens()
-            m = experience.meas()
+            s = self.preprocess_img(experience.sens())
+            m = self.preprocess_meas(experience.meas())
             g = experience.goal()
             label, mask = pad_label(experience.label(), experience.a, self.num_actions)
             x_train[0].append(s)
@@ -168,8 +170,8 @@ class basicNetwork(Network):
         # [goal_component_0, goal_component_1, ...]
         num_s = len(obs.sens[0])
         #need to put these into np arrays to make shape (1, original shape)
-        sens = np.array([obs.sens])
-        meas = np.array([np.expand_dims(obs.meas, 1)])
+        sens = np.array([self.preprocess_img(obs.sens)])
+        meas = np.array([np.expand_dims(self.preprocess_meas(obs.meas), 1)])
         goal = np.array([np.expand_dims(goal, 1)])
         prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))], verbose=1)[0]
         return prediction_t_a
@@ -184,8 +186,8 @@ class basicNetwork(Network):
         return max(custom_objective, key=lambda x:x[1])
 
 
-def basicNetwork_builder(num_actions):
-    return lambda: basicNetwork(num_actions, backing_file="bn.h5", load_from_backing_file= True)
+def basicNetwork_builder(network_params):
+    return lambda: basicNetwork(network_params, backing_file="bn.h5", load_from_backing_file= True)
 
 # bn = basicNetwork_builder(8)()
 # bn.build_network()
