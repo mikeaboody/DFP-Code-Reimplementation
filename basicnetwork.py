@@ -42,9 +42,9 @@ class basicNetwork(Network):
         self.optimizer = optimizer
         self.batch_size = 64
         self.perception_shape = (84, 84, 1)
-        self.measurements_shape = (3, 1)
-        self.goals_shape = (18, 1)
-        self.action_mask_shape = (3*6*self.num_actions,)
+        self.measurements_shape = (1, 1)
+        self.goals_shape = (6, 1)
+        self.action_mask_shape = (1*6*self.num_actions,)
         self.backing_file = backing_file
         self.load_from_backing_file = load_from_backing_file
 
@@ -99,11 +99,11 @@ class basicNetwork(Network):
         #expectations
         expectation = Dense(512)(mrg_j)
         expectation = LeakyReLU(alpha=0.2)(expectation)
-        expectation = Dense(3*6, activation="linear")(expectation)
+        expectation = Dense(1*6, activation="linear")(expectation)
         #action
         action = Dense(512)(mrg_j)
         action = LeakyReLU(alpha=0.2)(action)
-        action = Dense(3*6*self.num_actions, activation="linear")(action)
+        action = Dense(1*6*self.num_actions, activation="linear")(action)
         action = BatchNormalization()(action)
         #concat expectations for number of actions there are
         expectation = concatenate([expectation]*self.num_actions)
@@ -161,7 +161,11 @@ class basicNetwork(Network):
         # and goal is a vector that looks like
         # [goal_component_0, goal_component_1, ...]
         num_s = len(obs.sens[0])
-        prediction_t_a = self.model.predict([obs.sens, obs.meas, goal, np.ones((num_s, 3*6*self.num_actions))], verbose=1)
+        #need to put these into np arrays to make shape (1, original shape)
+        sens = np.array([obs.sens])
+        meas = np.array([obs.meas])
+        goal = np.array([goal])
+        prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))], verbose=1)
         return prediction_t_a
 
     def save_network(self):
@@ -177,32 +181,30 @@ class basicNetwork(Network):
 def basicNetwork_builder(num_actions):
     return lambda: basicNetwork(num_actions)
 
-bn = basicNetwork(256, backing_file="bn.h5", load_from_backing_file= True)
+bn = basicNetwork(256, backing_file="bn.h5", load_from_backing_file= False)
 bn.build_network()
 
-bn.save_network()
-
 def create_obs_goal_pair(bn):
-    sens = np.random.random_sample(size=(10,84,84,1))
-    meas = np.random.random_sample(size=(10,3,1))
-    goal = np.random.random_sample(size=(10,18,1))
+    sens = np.random.random_sample(size=(84,84,1))
+    meas = np.random.random_sample(size=(1,1))
+    goal = np.random.random_sample(size=(6,1))
     obs = Observation(sens, meas)
     return obs, goal
 
 def create_experience(bn):
     sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(3,1))
-    goal = np.random.random_sample(size=(18,1))
+    meas = np.random.random_sample(size=(1,1))
+    goal = np.random.random_sample(size=(6,1))
     # last value indicate index of action
-    label = np.random.random_sample(size=(18 + 1))
+    label = np.random.random_sample(size=(6 + 1))
     obs = Observation(sens, meas)
     exp = Experience(obs, 1, goal, label)
     return exp
 
-# experiences = [create_experience(bn) for _ in range(64)]
-# # import pdb; pdb.set_trace()
-# bn.update_weights(experiences)
-# a = create_obs_goal_pair(bn)
-# bn.predict(a[0], a[1])
+experiences = [create_experience(bn) for _ in range(64)]
+# import pdb; pdb.set_trace()
+bn.update_weights(experiences)
+a = create_obs_goal_pair(bn)
+bn.predict(a[0], a[1])
 
 
