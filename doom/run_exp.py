@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 from ai import Agent
 from basic_doom_simulator import create_basic_simulator
-from network import blank_network_builder
+from basicnetwork import basicNetwork_builder
 from abstraction import *
 from util import *
 
@@ -39,7 +39,7 @@ def run_basic():
 def train(num_iterations):
 	doom_simulator = create_basic_simulator()
 	possible_actions = enumerate_action_one_hots(3)
-	agent = Agent(config_path, possible_actions, blank_network_builder(len(possible_actions)))
+	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)))
 
 	#TODO implement decay, delete need for this line
 	agent.eps = 0
@@ -64,5 +64,28 @@ def train(num_iterations):
 
 	doom_simulator.close_game()
 
+def test(num_iterations):
+	doom_simulator = create_basic_simulator()
+	goal = np.array([0,0,0,0.5,.5,1])
+	possible_actions = enumerate_action_one_hots(3)
+	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)))
 
-train(1000)
+	img = None
+	meas = None
+	terminated = None
+
+	i = 0
+	while i < num_iterations:
+		if i == 0:
+			action_taken_one_hot = agent.act(goal=goal)
+		else:
+			action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
+		action_taken = action_from_one_hot(action_taken_one_hot)
+		print(action_taken)
+		img, meas, _, terminated = doom_simulator.step(action_taken)
+		i += 1
+
+	doom_simulator.close_game()
+
+
+test(20000)

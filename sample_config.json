@@ -6,5 +6,5 @@
 	"g_train": [0,0,0,0.5,0.5,1],
 	"eps_decay": 0,
 	"network_backing_file": null,
-	"network_save_period": -1
+	"network_save_period": 10
 }

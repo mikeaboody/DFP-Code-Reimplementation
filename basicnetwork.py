@@ -1,5 +1,6 @@
 from network import Network
 from abstraction import *
+from util import *
 import numpy as np
 import pandas as pd
 from keras.models import Model
@@ -18,12 +19,13 @@ import os.path
 #     return -K.dot(y_true,K.transpose(y_pred))
 
 
-def pad_label(label, num_actions):
+def pad_label(label, action, num_actions):
     # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
     # assume action is 0-indexed
     # this way dot product  0 out everything that's irrelevant
-    goal = label[:len(label) - 1].flatten()
-    action_index = int(label[len(label) - 1]*len(goal))
+    goal = label[:len(label)].flatten()
+    an = action_number(action)
+    action_index = int(an*len(goal))
     new_label = np.zeros(len(goal)*num_actions)
     mask = np.zeros(len(goal)*num_actions)
     new_label[action_index:action_index+len(goal)] = goal
@@ -47,6 +49,7 @@ class basicNetwork(Network):
         self.action_mask_shape = (1*6*self.num_actions,)
         self.backing_file = backing_file
         self.load_from_backing_file = load_from_backing_file
+        self.build_network()
 
     def is_network_defined(self):
         return self.model != None
@@ -128,7 +131,7 @@ class basicNetwork(Network):
             s = experience.sens()
             m = experience.meas()
             g = experience.goal()
-            label, mask = pad_label(experience.label(), self.num_actions)
+            label, mask = pad_label(experience.label(), experience.a, self.num_actions)
             x_train[0].append(s)
             x_train[1].append(m)
             x_train[2].append(g)
@@ -149,7 +152,10 @@ class basicNetwork(Network):
         # y train is tensor of batch size over samples (which are actions*goals length vectors)
         y_train = np.array(y_train).reshape((self.batch_size,
                                             self.goals_shape[0]*self.num_actions))
-        print(self.model.train_on_batch(x_train, y_train))
+        res = self.model.train_on_batch(x_train, y_train)
+        with open("results.txt", "a") as myfile:
+            myfile.write(str(res) + "\n")
+        print(res)
 
     def predict(self, obs, goal):
         """
@@ -163,9 +169,9 @@ class basicNetwork(Network):
         num_s = len(obs.sens[0])
         #need to put these into np arrays to make shape (1, original shape)
         sens = np.array([obs.sens])
-        meas = np.array([obs.meas])
-        goal = np.array([goal])
-        prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))], verbose=1)
+        meas = np.array([np.expand_dims(obs.meas, 1)])
+        goal = np.array([np.expand_dims(goal, 1)])
+        prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))], verbose=1)[0]
         return prediction_t_a
 
     def save_network(self):
@@ -179,32 +185,32 @@ class basicNetwork(Network):
 
 
 def basicNetwork_builder(num_actions):
-    return lambda: basicNetwork(num_actions)
+    return lambda: basicNetwork(num_actions, backing_file="bn.h5", load_from_backing_file= True)
 
-bn = basicNetwork(256, backing_file="bn.h5", load_from_backing_file= False)
-bn.build_network()
+# bn = basicNetwork_builder(8)()
+# bn.build_network()
 
 def create_obs_goal_pair(bn):
     sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(1,1))
-    goal = np.random.random_sample(size=(6,1))
+    meas = np.random.random_sample(size=(1,))
+    goal = np.random.random_sample(size=(6,))
     obs = Observation(sens, meas)
     return obs, goal
 
 def create_experience(bn):
     sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(1,1))
-    goal = np.random.random_sample(size=(6,1))
+    meas = np.random.random_sample(size=(1,))
+    goal = np.random.random_sample(size=(6,))
     # last value indicate index of action
-    label = np.random.random_sample(size=(6 + 1))
+    label = np.random.random_sample(size=(6,))
     obs = Observation(sens, meas)
-    exp = Experience(obs, 1, goal, label)
+    exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
     return exp
 
-experiences = [create_experience(bn) for _ in range(64)]
-# import pdb; pdb.set_trace()
-bn.update_weights(experiences)
-a = create_obs_goal_pair(bn)
-bn.predict(a[0], a[1])
+# experiences = [create_experience(bn) for _ in range(64)]
+# # import pdb; pdb.set_trace()
+# bn.update_weights(experiences)
+# a = create_obs_goal_pair(bn)
+# bn.predict(a[0], a[1])
 
 

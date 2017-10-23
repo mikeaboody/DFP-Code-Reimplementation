@@ -18,6 +18,14 @@ def create_label(obs, temp_offsets, recent_obs_act_pairs):
 def enumerate_action_one_hots(num_isolated_actions):
 	return list(np.identity(2 ** num_isolated_actions))
 
+def action_number(action_one_hot):
+	index = 0
+	for ele in action_one_hot:
+		if ele == 1:
+			break
+		index += 1
+	return index
+
 def action_to_one_hot(action):
 	res = np.zeros(2 ** len(action))
 	index = 0
@@ -29,11 +37,7 @@ def action_to_one_hot(action):
 	return res
 
 def action_from_one_hot(action_one_hot):
-	index = 0
-	for ele in action_one_hot:
-		if ele == 1:
-			break
-		index += 1
+	index = action_number(action_one_hot)
 	res = [0] * int(math.log(len(action_one_hot), 2))
 	i = 0
 	while (index != 0):
