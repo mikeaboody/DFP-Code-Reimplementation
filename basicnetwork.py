@@ -3,6 +3,7 @@ from abstraction import *
 import numpy as np
 import pandas as pd
 from keras.models import Model
+from keras.models import load_model
 from keras import backend as K
 from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Input
@@ -10,7 +11,7 @@ from keras.layers import Activation, Dropout, Flatten, Dense, concatenate, Add, 
 from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
-
+import os.path
 
 # def custom_objective(y_true, y_pred):
 #     print(y_pred.eval(session=tf.Session()))
@@ -35,8 +36,8 @@ class basicNetwork(Network):
     to implement the network in different frameworks. All a network needs
     to do is implement these methods.
     """
-    def __init__(self, num_actions, optimizer="Adam"):
-        super(basicNetwork, self).__init__(num_actions)
+    def __init__(self, num_actions, backing_file=None, load_from_backing_file=False, optimizer="Adam"):
+        super(basicNetwork, self).__init__(num_actions, backing_file, load_from_backing_file)
         # put arguments here
         self.optimizer = optimizer
         self.batch_size = 64
@@ -44,6 +45,8 @@ class basicNetwork(Network):
         self.measurements_shape = (3, 1)
         self.goals_shape = (18, 1)
         self.action_mask_shape = (3*6*self.num_actions,)
+        self.backing_file = backing_file
+        self.load_from_backing_file = load_from_backing_file
 
     def is_network_defined(self):
         return self.model != None
@@ -62,6 +65,9 @@ class basicNetwork(Network):
 
     # override
     def build_network(self):
+        if self.load_from_backing_file and os.path.isfile(self.backing_file) :
+            self.model = load_model(self.backing_file)
+            return
         # perception layer
         perception_input = Input(shape=self.perception_shape)
         perception_conv = Convolution2D(32, 8, strides=4, input_shape=self.perception_shape)(perception_input)
@@ -158,6 +164,9 @@ class basicNetwork(Network):
         prediction_t_a = self.model.predict([obs.sens, obs.meas, goal, np.ones((num_s, 3*6*self.num_actions))], verbose=1)
         return prediction_t_a
 
+    def save_network(self):
+        self.model.save(self.backing_file)
+
     def choose_action(self, prediction_t_a, actions):
         # need to implement actions... a one-hot vector?
         action_and_action_values = [(action, np.dot(goal, prediction_t_a)) 
@@ -168,8 +177,10 @@ class basicNetwork(Network):
 def basicNetwork_builder(num_actions):
     return lambda: basicNetwork(num_actions)
 
-# bn = basicNetwork(256)
-# bn.build_network()
+bn = basicNetwork(256, backing_file="bn.h5", load_from_backing_file= True)
+bn.build_network()
+
+bn.save_network()
 
 def create_obs_goal_pair(bn):
     sens = np.random.random_sample(size=(10,84,84,1))

@@ -6,6 +6,8 @@ from abstraction import *
 from network import Network
 from bounded_cache import BoundedCache
 
+expected_config_keys = [u'M', u'N', u'k', u'g_train', u'eps_decay', u'temp_offsets', u'network_backing_file', u'network_save_period']
+
 class Agent(object):
     """
     M: # of points in memory
@@ -26,11 +28,12 @@ class Agent(object):
         self.eps = 1
         self.network = network_builder()
         self.possible_actions = possible_actions
+        self.num_times_weights_updated = 0
 
     def load_agent_config(self, json_filename):
         with open(json_filename) as json_data_file:
             data = json.load(json_data_file)
-            assert set([u'M', u'N', u'k', u'g_train', u'eps_decay', u'temp_offsets']) == set(data.keys())
+            assert set(expected_config_keys) == set(data.keys())
             for key in data:
                 if isinstance(data[key], list):
                     setattr(self, key, np.array(data[key]))
@@ -50,6 +53,10 @@ class Agent(object):
         if self.num_exp_added % self.k == 0:
             sampled_exp = self.experience_memory.sample(self.N)
             self.network.update_weights(sampled_exp)
+            self.num_times_weights_updated += 1
+
+            if self.network_save_period > 0 and self.num_times_weights_updated % self.network_save_period  == 0:
+                self.network.save_network()
 
         #TODO do we do this only when we update weights or for every experience we get?
         self.eps = max(self.eps - self.eps_decay, 0)

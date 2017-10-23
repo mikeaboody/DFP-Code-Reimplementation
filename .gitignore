@@ -1,3 +1,4 @@
 *.DS_Store
 *.pyc
 doom/_vizdoom.ini
+*.h5
