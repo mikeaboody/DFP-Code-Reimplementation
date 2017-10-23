@@ -7,11 +7,12 @@ from abstraction import *
 from util import *
 
 config_path = "../sample_config.json"
+eps_func = lambda step: (0.02 + 145000. / (float(step) + 150000.))
 
 def run_basic():
 	possible_actions = [[1,0,0], [0,1,0], [0,0,1]]
 	doom_simulator = create_basic_simulator()
-	agent = Agent(config_path, possible_actions, blank_network_builder(len(possible_actions)))
+	agent = Agent(config_path, possible_actions, blank_network_builder(len(possible_actions)), eps_func)
 	agent.eps = 0
 	img = None
 	meas = None
@@ -39,10 +40,7 @@ def run_basic():
 def train(num_iterations):
 	doom_simulator = create_basic_simulator()
 	possible_actions = enumerate_action_one_hots(3)
-	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)))
-
-	#TODO implement decay, delete need for this line
-	agent.eps = 0
+	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)), eps_func)
 
 	img = None
 	meas = None
@@ -68,7 +66,7 @@ def test(num_iterations):
 	doom_simulator = create_basic_simulator()
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
-	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)))
+	agent = Agent(config_path, possible_actions, basicNetwork_builder(len(possible_actions)), eps_func)
 
 	img = None
 	meas = None

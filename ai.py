@@ -6,7 +6,7 @@ from abstraction import *
 from network import Network
 from bounded_cache import BoundedCache
 
-expected_config_keys = [u'M', u'N', u'k', u'g_train', u'eps_decay', u'temp_offsets', u'network_backing_file', u'network_save_period']
+expected_config_keys = [u'M', u'N', u'k', u'g_train', u'temp_offsets', u'network_backing_file', u'network_save_period']
 
 class Agent(object):
     """
@@ -15,17 +15,17 @@ class Agent(object):
     k: number of new experiences to update prediction parameters
     temp_offsets: temporal offsets
     g_train: fixed goal vector (TODO variable goals) for training
-    eps_decay: fixed schedule for which eps decays
 
     all of these are set by a config
     """
 
-    def __init__(self, agent_config, possible_actions, network_builder):
+    def __init__(self, agent_config, possible_actions, network_builder, eps_func):
         self.load_agent_config(agent_config)
         self.recent_obs_act_pairs = BoundedCache(max(self.temp_offsets) + 1)
         self.experience_memory = BoundedCache(self.M)
         self.num_exp_added = 0
         self.eps = 1
+        self.eps_func = eps_func
         self.network = network_builder()
         self.possible_actions = possible_actions
         self.num_times_weights_updated = 0
@@ -58,8 +58,7 @@ class Agent(object):
             if self.network_save_period > 0 and self.num_times_weights_updated % self.network_save_period  == 0:
                 self.network.save_network()
 
-        #TODO do we do this only when we update weights or for every experience we get?
-        self.eps = max(self.eps - self.eps_decay, 0)
+            self.eps = max(self.eps_func(self.num_exp_added), 0)
 
     def act(self, obs=None, training=False, goal=None):
         assert training or goal != None
