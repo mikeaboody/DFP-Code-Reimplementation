@@ -165,6 +165,9 @@ class basicNetwork(Network):
         return max(custom_objective, key=lambda x:x[1])
 
 
+def basicNetwork_builder(num_actions):
+    return lambda: basicNetwork(num_actions)
+
 # bn = basicNetwork(256)
 # bn.build_network()
 
@@ -184,7 +187,7 @@ def create_experience(bn):
     obs = Observation(sens, meas)
     exp = Experience(obs, 1, goal, label)
     return exp
-    
+
 # experiences = [create_experience(bn) for _ in range(64)]
 # # import pdb; pdb.set_trace()
 # bn.update_weights(experiences)

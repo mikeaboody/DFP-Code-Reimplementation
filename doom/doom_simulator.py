@@ -129,7 +129,9 @@ class DoomSimulator:
             self.new_episode() # in multiplayer multi_simulator takes care of this            
             img = np.zeros((self.num_channels, self.resolution[1], self.resolution[0]), dtype=np.uint8) # should ideally put nan here, but since it's an int...
             meas = np.zeros(self.num_meas, dtype=np.uint32) # should ideally put nan here, but since it's an int...
-            
+        
+        #reshape to be correct
+        img = img.reshape(self.resolution[1], self.resolution[0], self.num_channels)
         return img, meas, rwrd, term
     
     def get_random_action(self):
