@@ -50,6 +50,7 @@ class BlankNetwork(object):
 		print("Updating weights for {} experiences.".format(len(exps)))
 		print("Update stats: sens shape: {}, meas shape {}, goal shape: {}, label shape: {}" \
 			.format(exps[0].sens().shape, exps[0].meas().shape, exps[0].goal().shape, exps[0].label().shape))
+		print("Action vector length: {}".format(len(exps[0].a)))
 
 	def loss_func(self, exps):
 		pass
