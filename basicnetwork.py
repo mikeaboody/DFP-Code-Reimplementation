@@ -165,8 +165,8 @@ class basicNetwork(Network):
         return max(custom_objective, key=lambda x:x[1])
 
 
-bn = basicNetwork(256)
-bn.build_network()
+# bn = basicNetwork(256)
+# bn.build_network()
 
 def create_obs_goal_pair(bn):
     sens = np.random.random_sample(size=(10,84,84,1))
@@ -184,10 +184,11 @@ def create_experience(bn):
     obs = Observation(sens, meas)
     exp = Experience(obs, 1, goal, label)
     return exp
-experiences = [create_experience(bn) for _ in range(64)]
-# import pdb; pdb.set_trace()
-bn.update_weights(experiences)
-a = create_obs_goal_pair(bn)
-bn.predict(a[0], a[1])
+    
+# experiences = [create_experience(bn) for _ in range(64)]
+# # import pdb; pdb.set_trace()
+# bn.update_weights(experiences)
+# a = create_obs_goal_pair(bn)
+# bn.predict(a[0], a[1])
 
 

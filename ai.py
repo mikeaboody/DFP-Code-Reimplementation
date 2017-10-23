@@ -54,8 +54,11 @@ class Agent(object):
         #TODO do we do this only when we update weights or for every experience we get?
         self.eps = max(self.eps - self.eps_decay, 0)
 
-    def act(self, obs, training=False, goal=None):
+    def act(self, obs=None, training=False, goal=None):
         assert training or goal != None
+
+        if obs == None:
+            return random.choice(self.possible_actions)
 
         if training:
             if biased_coin(self.eps): #random action
