@@ -1,0 +1,4 @@
+1. Get cuDNN v6.0 Library for Linux for CUDA8.0 here https://developer.nvidia.com/rdp/cudnn-download
+2. Rename to .tgz, do tar -xzf filename
+3. cd cudnn_blah_blah/lib64
+4. sudo cp * /usr/local/cuda/lib64
