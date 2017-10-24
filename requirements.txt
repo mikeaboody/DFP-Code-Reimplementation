@@ -1,6 +1,4 @@
 tensorflow-gpu
 keras
-cudnn
-cuda
 numpy
 vizdoom
