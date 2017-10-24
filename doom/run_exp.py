@@ -88,4 +88,4 @@ def test(num_iterations):
 	doom_simulator.close_game()
 
 
-train(100)
+test(100)

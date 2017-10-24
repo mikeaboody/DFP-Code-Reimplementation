@@ -43,6 +43,8 @@ class basicNetwork(Network):
         self.num_actions = network_params["num_actions"]
         self.preprocess_img = network_params["preprocess_img"]
         self.preprocess_meas = network_params["preprocess_meas"]
+        self.preprocess_label = network_params["preprocess_label"]
+        self.postprocess_label = network_params["postprocess_label"]
         self.optimizer = optimizer
         self.batch_size = 64
         self.perception_shape = (84, 84, 1)
@@ -52,6 +54,7 @@ class basicNetwork(Network):
         self.backing_file = backing_file
         self.load_from_backing_file = load_from_backing_file
         self.build_network()
+        self.num_updates = 0
 
     def is_network_defined(self):
         return self.model != None
@@ -134,6 +137,7 @@ class basicNetwork(Network):
             m = self.preprocess_meas(experience.meas())
             g = experience.goal()
             label, mask = pad_label(experience.label(), experience.a, self.num_actions)
+            label = self.preprocess_label(label)
             x_train[0].append(s)
             x_train[1].append(m)
             x_train[2].append(g)
@@ -155,9 +159,10 @@ class basicNetwork(Network):
         y_train = np.array(y_train).reshape((self.batch_size,
                                             self.goals_shape[0]*self.num_actions))
         res = self.model.train_on_batch(x_train, y_train)
-        with open("results.txt", "a") as myfile:
-            myfile.write(str(res) + "\n")
-        print(res)
+        if self.num_updates % 100 == 0:
+            with open("results.txt", "a") as myfile:
+                myfile.write(str(res) + "\n")
+        self.num_updates += 1
 
     def predict(self, obs, goal):
         """
@@ -173,7 +178,8 @@ class basicNetwork(Network):
         sens = np.array([self.preprocess_img(obs.sens)])
         meas = np.array([np.expand_dims(self.preprocess_meas(obs.meas), 1)])
         goal = np.array([np.expand_dims(goal, 1)])
-        prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))], verbose=1)[0]
+        prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))])[0]
+        prediction_t_a = self.postprocess_label(prediction_t_a)
         return prediction_t_a
 
     def save_network(self):
