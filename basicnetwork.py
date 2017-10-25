@@ -96,14 +96,8 @@ class basicNetwork(Network):
         measurements_fc = Dense(128, activation="linear")(measurements_fc)
         # goals layer
         goal_input = Input(shape=self.goals_shape)
-        goals_flatten = Flatten()(goal_input)
-        goals_fc = Dense(128)(goals_flatten)
-        goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
-        goals_fc = Dense(128)(goals_fc)
-        goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
-        goals_fc = Dense(128, activation="linear")(goals_fc)
         # merge together
-        mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
+        mrg_j= concatenate([perception_fc,measurements_fc])
         #expectations
         expectation = Dense(512)(mrg_j)
         expectation = LeakyReLU(alpha=0.2)(expectation)
