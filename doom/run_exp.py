@@ -144,9 +144,10 @@ def log_config_test():
 				episode_count += 1
 				episode_healths = []
 				agent.signal_episode_end()
+				step_i = 0
 			else:
 				agent.observe(Observation(img, meas), action_taken_one_hot)
-			step_i += 1
+			step_i +=1
 		doom_simulator.close_game()
 	except KeyboardInterrupt:
 		step_f.close()
