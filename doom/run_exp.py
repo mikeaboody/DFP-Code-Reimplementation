@@ -128,31 +128,31 @@ def log_config_test():
 	episode_count = 0
 	num_episode_test = log_agent_param['testing_num_episodes']
 	freq = log_agent_param['test_eval_freq']
-	try:
-		while episode_count < num_episode_test:
-			if step_i == 0:
-				action_taken_one_hot = agent.act(goal=goal)
-			else:
-				action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
-			action_taken = action_from_one_hot(action_taken_one_hot)
-			img, meas, _, terminated = doom_simulator.step(action_taken)
-			if step_i % freq == 0:
-				episode_healths.append(meas[0])
-				step_writer.writerow([meas[0]])
-			if (terminated):
-				ep_writer.writerow([np.mean(episode_healths)])
-				episode_count += 1
-				episode_healths = []
-				agent.signal_episode_end()
-				step_i = 0
-			else:
-				agent.observe(Observation(img, meas), action_taken_one_hot)
-			step_i +=1
-		doom_simulator.close_game()
-	except KeyboardInterrupt:
-		step_f.close()
-		ep_f.close()
-		doom_simulator.close_game()
-		sys.exit()
+	# try:
+	while episode_count < num_episode_test:
+		if step_i == 0:
+			action_taken_one_hot = agent.act(goal=goal)
+		else:
+			action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
+		action_taken = action_from_one_hot(action_taken_one_hot)
+		img, meas, _, terminated = doom_simulator.step(action_taken)
+		if step_i % freq == 0:
+			episode_healths.append(meas[0])
+			step_writer.writerow([meas[0]])
+		if (terminated):
+			ep_writer.writerow([np.mean(episode_healths)])
+			episode_count += 1
+			episode_healths = []
+			agent.signal_episode_end()
+			step_i = 0
+		else:
+			agent.observe(Observation(img, meas), action_taken_one_hot)
+		step_i +=1
+	doom_simulator.close_game()
+	# except KeyboardInterrupt:
+	# 	step_f.close()
+	# 	ep_f.close()
+	# 	doom_simulator.close_game()
+	# 	sys.exit()
 
 log_config_test()
