@@ -1,5 +1,6 @@
 import sys
 sys.path.append("..")
+import csv
 from ai import Agent
 from basic_doom_simulator import create_basic_simulator
 from basicnetwork import basicNetwork_builder
@@ -10,11 +11,6 @@ from util import *
 from doom_config import agent_params
 from doom_config import network_params
 from log_config import log_agent_param
-import logging
-
-logging.basicConfig(filename=log_agent_param['log_path'],
-                    filemode='a',
-                    level=logging.DEBUG)
 
 def run_basic():
 	possible_actions = [[1,0,0], [0,1,0], [0,0,1]]
@@ -63,8 +59,6 @@ def log_measurements(episode_count, episode_healths, terminated, meas, i, train)
 
 
 def train(num_iterations):
-	if log_agent_param['to_log']:
-		logging.debug("**********TRAINING BEGANS**********")
 	doom_simulator = create_basic_simulator()
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
@@ -72,16 +66,12 @@ def train(num_iterations):
 	meas = None
 	terminated = None
 	i = 0
-	episode_healths = []
-	episode_count = 1
 	while i < num_iterations:
 		if i == 0:
 			action_taken_one_hot = agent.act(training=True)
 		else:
 			action_taken_one_hot = agent.act(Observation(img, meas), training=True)
 		img, meas, _, terminated = doom_simulator.step(action_from_one_hot(action_taken_one_hot))
-		if log_agent_param['to_log']:
-			episode_count, episode_healths = log_measurements(episode_count, episode_healths, terminated, meas, i, True)
 		if (terminated):
 			agent.signal_episode_end()
 		else:
@@ -91,19 +81,16 @@ def train(num_iterations):
 	doom_simulator.close_game()
 
 def test(num_iterations):
-	if log_agent_param['to_log']:
-		logging.debug("**********TESTING BEGANS**********")
 	doom_simulator = create_basic_simulator()
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
-
 	img = None
 	meas = None
 	terminated = None
 	i = 0
-	episode_healths = []
-	episode_count = 1
+	# episode_healths = []
+	# episode_count = 1
 	while i < num_iterations:
 		if i == 0:
 			action_taken_one_hot = agent.act(goal=goal)
@@ -111,20 +98,51 @@ def test(num_iterations):
 			action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
 		action_taken = action_from_one_hot(action_taken_one_hot)
 		img, meas, _, terminated = doom_simulator.step(action_taken)
-		if log_agent_param['to_log']:
-			if i % log_agent_param['test_eval_freq'] == 0:
-				logging.debug("Episode {0} iter {1} action taken: {0}".format(episode_count, i, action_taken))
-		episode_count, episode_healths = log_measurements(episode_count, episode_healths, False, meas, i, False)
+		# if log_agent_param['to_log']:
+		# 	if i % log_agent_param['test_eval_freq'] == 0:
+		# 		logging.debug("Episode {0} iter {1} action taken: {0}".format(episode_count, i, action_taken))
+		# episode_count, episode_healths = log_measurements(episode_count, episode_healths, False, meas, i, False)
 		i += 1
 	doom_simulator.close_game()
 
-def train_and_test():
-	for i in range(0, log_agent_param['num_times_trained']):
-		if log_agent_param['to_log']:
-			logging.debug("**********Bot Training/Test Iter {0} BEGANS**********".format(i))
-		train(log_agent_param['training_num_iter'])
-		test(log_agent_param['testing_num_iter'])
+def log_config_test():
+	# train a lot
+	train(log_agent_param['training_num_steps'])
+	# test a lot
+	step_f = open(log_agent_param['step_data_file'],'a')
+	ep_f = open(log_agent_param['episode_data_file'],'a')
+	step_writer = csv.writer(step_f)
+	ep_writer = csv.writer(ep_f)
+	doom_simulator = create_basic_simulator()
+	goal = np.array([0,0,0,0.5,.5,1])
+	possible_actions = enumerate_action_one_hots(3)
+	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
+	img = None
+	meas = None
+	terminated = None
+	step_i = 0
+	episode_healths = []
+	episode_count = 0
+	num_episode_test = log_agent_param['testing_num_episodes']
+	freq = log_agent_param['test_eval_freq']
+	while episode_count < num_episode_test:
+		if step_i == 0:
+			action_taken_one_hot = agent.act(goal=goal)
+		else:
+			action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
+		action_taken = action_from_one_hot(action_taken_one_hot)
+		img, meas, _, terminated = doom_simulator.step(action_taken)
+		if step_i % freq == 0:
+			episode_healths.append(meas[0])
+			step_writer.writerow([meas[0]])
+		if (terminated):
+			ep_writer.writerow([np.mean(episode_healths)])
+			episode_count += 1
+			episode_healths = []
+			agent.signal_episode_end()
+		else:
+			agent.observe(Observation(img, meas), action_taken_one_hot)
+		step_i += 1
+	doom_simulator.close_game()
 
-
-test(100)
-train_and_test()
+log_config_test()
