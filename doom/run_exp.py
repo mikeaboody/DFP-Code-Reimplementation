@@ -110,14 +110,10 @@ def log_config_test():
 	# train a lot
 	train(log_agent_param['training_num_steps'])
 	# test a lot
-	if os.path.exists(log_agent_param['step_data_file']):
-		step_f = open(log_agent_param['step_data_file'],'a')
-	else:
-		step_f = open(log_agent_param['step_data_file'],'w')
-	if os.path.exists(log_agent_param['episode_data_file']):
-		ep_f = open(log_agent_param['episode_data_file'],'a')
-	else:
-		ep_f = open(log_agent_param['episode_data_file'],'w')
+	os.makedirs(os.path.dirname(log_agent_param['step_data_file']), exist_ok=True)
+	step_f = open(log_agent_param['step_data_file'],'a')
+	os.makedirs(os.path.dirname(log_agent_param['episode_data_file']), exist_ok=True)
+	ep_f = open(log_agent_param['episode_data_file'],'a')
 	step_writer = csv.writer(step_f)
 	ep_writer = csv.writer(ep_f)
 	doom_simulator = create_basic_simulator()
