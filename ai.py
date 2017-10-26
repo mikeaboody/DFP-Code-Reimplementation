@@ -58,7 +58,7 @@ class Agent(object):
             self.eps = max(self.eps_decay_func(self.num_exp_added), 0)
 
     def act(self, obs=None, training=False, goal=None):
-        assert training or goal != None
+        assert training or goal is not None
 
         if obs == None:
             return random.choice(self.possible_actions)
