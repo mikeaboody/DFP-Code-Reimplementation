@@ -119,7 +119,7 @@ def test(num_iterations):
 	doom_simulator.close_game()
 
 def train_and_test():
-	for i in range(0, log_agent_param['num_times_trained'])
+	for i in range(0, log_agent_param['num_times_trained']):
 		if log_agent_param['to_log']:
 			logging.debug("**********Bot Training/Test Iter {0} BEGANS**********".format(i))
 		train(log_agent_param['training_num_iter'])
