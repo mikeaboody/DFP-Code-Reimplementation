@@ -13,6 +13,7 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 import os.path
+import time
 
 # def custom_objective(y_true, y_pred):
 #     print(y_pred.eval(session=tf.Session()))
@@ -128,6 +129,7 @@ class basicNetwork(Network):
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
+        start = time.time()
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -158,11 +160,12 @@ class basicNetwork(Network):
         # y train is tensor of batch size over samples (which are actions*goals length vectors)
         y_train = np.array(y_train).reshape((self.batch_size,
                                             self.goals_shape[0]*self.num_actions))
-        res = self.model.train_on_batch(x_train, y_train)
-        if self.num_updates % 100 == 0:
-            with open("results.txt", "a") as myfile:
-                myfile.write(str(res) + "\n")
+        #res = self.model.train_on_batch(x_train, y_train)
+        res = self.model.fit(x=x_train,y=y_train,batch_size=64)
+        #    with open("results.txt", "a") as myfile:
+        #        myfile.write(str(res) + "\n")
         self.num_updates += 1
+        print("Minibatch update training batch {} complete, elapsed time: {}".format(self.num_updates, time.time() - start))
 
     def predict(self, obs, goal):
         """

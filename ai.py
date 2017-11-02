@@ -53,7 +53,8 @@ class Agent(object):
             self.num_times_weights_updated += 1
 
             if self.network_save_period > 0 and self.num_times_weights_updated % self.network_save_period  == 0:
-                self.network.save_network()
+                pass
+                #self.network.save_network()
 
             self.eps = max(self.eps_decay_func(self.num_exp_added), 0)
 
@@ -70,6 +71,7 @@ class Agent(object):
 
         num_actions = len(self.possible_actions)
         #get prediction from network for all actions
+        
         prediction = self.network.predict(obs, goal)
 
         assert len(prediction) == num_actions * len(goal)
