@@ -3,6 +3,7 @@ from abstraction import *
 from util import *
 import numpy as np
 import pandas as pd
+import math
 from keras.models import Model
 from keras.models import load_model
 from keras import backend as K
@@ -42,7 +43,7 @@ class basicNetwork(Network):
     to implement the network in different frameworks. All a network needs
     to do is implement these methods.
     """
-    def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam", k_h=[8, 4, 3], k_w=[8, 4, 3]):
+    def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam", k_h=[8, 4, 3], k_w=[8, 4, 3], decay_steps=250000):
         super(basicNetwork, self).__init__(network_params, backing_file, load_from_backing_file)
         self.num_actions = network_params["num_actions"]
         self.preprocess_img = network_params["preprocess_img"]
@@ -54,14 +55,18 @@ class basicNetwork(Network):
         self.perception_shape = (84, 84, 1)
         self.measurements_shape = (1, 1)
         self.goals_shape = (6, 1)
+        self.learning_rate = 1e-04
+        self.decay_rate = 0.3
         self.msra_coef=0.9
         self.k_h = k_h
         self.k_w = k_w
         self.action_mask_shape = (1*6*self.num_actions,)
         self.backing_file = backing_file
         self.load_from_backing_file = load_from_backing_file
-        self.build_network()
         self.num_updates = 0
+        self.decay_steps = decay_steps
+        self.build_network()
+
 
     def is_network_defined(self):
         return self.model != None
@@ -162,12 +167,21 @@ class basicNetwork(Network):
         opt = None
         # worst case we can do learning rate step size of 250000
         if self.optimizer == "Adam":
-            opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
+            opt = Adam(lr=self.learning_rate, beta_1=0.95, beta_2=0.999, epsilon=1e-04)
         self.model.compile(loss='mean_squared_error', optimizer=opt)
+
+    def exponentially_decay(self, global_step):
+        decayed_learning_rate = self.learning_rate * (math.pow(self.decay_rate, global_step / self.decay_steps))
+        return decayed_learning_rate
+
 
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
+        global_step = self.num_updates*self.batch_size
+        new_lr = self.exponentially_decay(global_step)
+        self.model.optimizer.lr.assign(new_lr)
+        print(new_lr)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
