@@ -3,6 +3,7 @@ from abstraction import *
 from util import *
 import numpy as np
 import pandas as pd
+import math
 from keras.models import Model
 from keras.models import load_model
 from keras import backend as K
@@ -42,7 +43,7 @@ class basicNetwork(Network):
     to implement the network in different frameworks. All a network needs
     to do is implement these methods.
     """
-    def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam", k_h=[8, 4, 3], k_w=[8, 4, 3]):
+    def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam", k_h=[8, 4, 3], k_w=[8, 4, 3], decay_steps=250000):
         super(basicNetwork, self).__init__(network_params, backing_file, load_from_backing_file)
         self.num_actions = network_params["num_actions"]
         self.preprocess_img = network_params["preprocess_img"]
@@ -54,14 +55,18 @@ class basicNetwork(Network):
         self.perception_shape = (84, 84, 1)
         self.measurements_shape = (1, 1)
         self.goals_shape = (6, 1)
-        self.msra_coef=0.9
+        self.learning_rate = 1e-04
+        self.decay_rate = 0.3
+        self.msra_coef = 0.9
         self.k_h = k_h
         self.k_w = k_w
         self.action_mask_shape = (1*6*self.num_actions,)
         self.backing_file = backing_file
         self.load_from_backing_file = load_from_backing_file
-        self.build_network()
         self.num_updates = 0
+        self.decay_steps = decay_steps
+        self.build_network()
+
 
     def is_network_defined(self):
         return self.model != None
@@ -88,69 +93,69 @@ class basicNetwork(Network):
         perception_conv = Convolution2D(32, 8, strides=4,
                                         input_shape=self.perception_shape,
                                         padding="same",
-                                        kernel_initializer = TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_input, self.k_h[0], self.k_w[0])),
-                                        bias_initializer = Constant(value=0))(perception_input)
+                                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_input, self.k_h[0], self.k_w[0])),
+                                        bias_initializer=Constant(value=0))(perception_input)
         perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
         perception_conv = Convolution2D(64, 4, strides=2,
                                         padding="same",
-                                        weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_conv, self.k_h[1], self.k_w[1])),
-                                                 Constant(value=0)])(perception_conv)
+                                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_conv, self.k_h[1], self.k_w[1])),
+                                        bias_initializer=Constant(value=0))(perception_conv)
         perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
         perception_conv = Convolution2D(64, 3, strides=1,
                                         padding="same",
-                                        weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_conv, self.k_h[2], self.k_w[2])),
-                                                Constant(value=0)])(perception_conv)
+                                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_conv, self.k_h[2], self.k_w[2])),
+                                        bias_initializer=Constant(value=0))(perception_conv)
         perception_conv = LeakyReLU(alpha=0.2)(perception_conv)
         perception_flattened = Flatten()(perception_conv)
         perception_fc = Dense(512, activation="linear",
-                                   weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_flattened, 1, 1)),
-                                                 Constant(value=0)])(perception_flattened)
+                                   kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(perception_flattened, 1, 1)),
+                                   bias_initializer=Constant(value=0))(perception_flattened)
         # measurement layer
         measurement_input = Input(shape=self.measurements_shape)
         measurement_flatten = Flatten()(measurement_input)
         measurements_fc = Dense(128,
-                                weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurement_flatten, 1, 1)),
-                                                 Constant(value=0)])(measurement_flatten)
+                                kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurement_flatten, 1, 1)),
+                                bias_initializer=Constant(value=0))(measurement_flatten)
         measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
         measurements_fc = Dense(128,
-                                weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurements_fc, 1, 1)),
-                                                 Constant(value=0)])(measurements_fc)
+                                kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurements_fc, 1, 1)),
+                                bias_initializer=Constant(value=0))(measurements_fc)
         measurements_fc = LeakyReLU(alpha=0.2)(measurements_fc)
         measurements_fc = Dense(128, activation="linear",
-                                weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurements_fc, 1, 1)),
-                                                 Constant(value=0)])(measurements_fc)
+                                kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurements_fc, 1, 1)),
+                                bias_initializer=Constant(value=0))(measurements_fc)
         # goals layer
         goal_input = Input(shape=self.goals_shape)
         goals_flatten = Flatten()(goal_input)
         goals_fc = Dense(128,
-                        weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_flatten, 1, 1)),
-                                                 Constant(value=0)])(goals_flatten)
+                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_flatten, 1, 1)),
+                        bias_initializer=Constant(value=0))(goals_flatten)
         goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
         goals_fc = Dense(128,
-                    weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_fc, 1, 1)),
-                                                 Constant(value=0)])(goals_fc)
+                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_fc, 1, 1)),
+                        bias_initializer=Constant(value=0))(goals_fc)
         goals_fc = LeakyReLU(alpha=0.2)(goals_fc)
         goals_fc = Dense(128, activation="linear",
-                        weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_fc, 1, 1)),
-                                                 Constant(value=0)])(goals_fc)
+                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(goals_fc, 1, 1)),
+                        bias_initializer=Constant(value=0))(goals_fc)
         # merge together
         mrg_j= concatenate([perception_fc,measurements_fc,goals_fc])
         #expectations
         expectation = Dense(512,
-                            weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(mrg_j, 1, 1)),
-                                                 Constant(value=0)])(mrg_j)
+                            kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(mrg_j, 1, 1)),
+                            bias_initializer=Constant(value=0))(mrg_j)
         expectation = LeakyReLU(alpha=0.2)(expectation)
         expectation = Dense(1*6, activation="linear",
-                            weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(expectation, 1, 1)),
-                                                 Constant(value=0)])(expectation)
+                            kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(expectation, 1, 1)),
+                            bias_initializer=Constant(value=0))(expectation)
         #action
         action = Dense(512,
-                       weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(mrg_j, 1, 1)),
-                                                 Constant(value=0)])(mrg_j)
+                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(mrg_j, 1, 1)),
+                        bias_initializer=Constant(value=0))(mrg_j)
         action = LeakyReLU(alpha=0.2)(action)
         action = Dense(1*6*self.num_actions, activation="linear",
-                       weights=[TruncatedNormal(stddev=self.msra_coef*msra_stddev(action, 1, 1)),
-                                                 Constant(value=0)])(action)
+                        kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(action, 1, 1)),
+                        bias_initializer=Constant(value=0))(action)
         action = BatchNormalization()(action)
         #concat expectations for number of actions there are
         expectation = concatenate([expectation]*self.num_actions)
@@ -162,12 +167,21 @@ class basicNetwork(Network):
         opt = None
         # worst case we can do learning rate step size of 250000
         if self.optimizer == "Adam":
-            opt = Adam(lr=1e-04, beta_1=0.95, beta_2=0.999, epsilon=1e-04, decay=0.3)
+            opt = Adam(lr=self.learning_rate, beta_1=0.95, beta_2=0.999, epsilon=1e-04)
         self.model.compile(loss='mean_squared_error', optimizer=opt)
+
+    def exponentially_decay(self, global_step):
+        decayed_learning_rate = self.learning_rate * (math.pow(self.decay_rate, global_step / self.decay_steps))
+        return decayed_learning_rate
+
 
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
+        global_step = self.num_updates*self.batch_size
+        new_lr = self.exponentially_decay(global_step)
+        self.model.optimizer.lr.assign(new_lr)
+        print(new_lr)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -235,12 +249,11 @@ class basicNetwork(Network):
 def basicNetwork_builder(network_params):
     return lambda: basicNetwork(network_params, backing_file="bn.h5", load_from_backing_file= True)
 
-bn = basicNetwork_builder({"num_actions": 8,
-                            "preprocess_img": np.array([]),
-                            "preprocess_meas": np.array([]),
-                            "preprocess_label": np.array([]),
-                            "postprocess_label": np.array([])})()
-bn.build_network()
+# bn = basicNetwork_builder({"num_actions": 8,
+#                             "preprocess_img": np.array([]),
+#                             "preprocess_meas": np.array([]),
+#                             "preprocess_label": np.array([]),
+#                             "postprocess_label": np.array([])})()
 
 def create_obs_goal_pair(bn):
     sens = np.random.random_sample(size=(84,84,1))
@@ -260,8 +273,15 @@ def create_experience(bn):
     return exp
 
 # experiences = [create_experience(bn) for _ in range(64)]
-# # import pdb; pdb.set_trace()
+# # # import pdb; pdb.set_trace()
 # bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+
+
 # a = create_obs_goal_pair(bn)
 # bn.predict(a[0], a[1])
 
