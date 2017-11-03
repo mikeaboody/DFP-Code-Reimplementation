@@ -124,18 +124,19 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
 		action_taken = action_from_one_hot(action_taken_one_hot)
 		img, meas, _, terminated = testing_doom_simulator.step(action_taken)
 
-		episode_healths.append(meas[0])
 		curr_episode_step += 1
 		if terminated:
 			#collect metrics
 			avg_health = np.mean(np.array(episode_healths))
-			terminal_health = meas[0]
+			terminal_health = episode_healths[-1]
 			avg_healths.append(avg_health)
 			terminal_healths.append(terminal_health)
 
 			curr_episode += 1
 			curr_episode_step = 0
 			episode_healths = []
+		else:
+			episode_healths.append(meas[0])
 	testing_doom_simulator.close_game()
 
 	return [curr_training_iter, np.mean(np.array(avg_healths)), np.mean(np.array(terminal_healths))]
