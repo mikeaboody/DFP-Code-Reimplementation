@@ -57,7 +57,7 @@ class basicNetwork(Network):
         self.goals_shape = (6, 1)
         self.learning_rate = 1e-04
         self.decay_rate = 0.3
-        self.msra_coef=0.9
+        self.msra_coef = 0.9
         self.k_h = k_h
         self.k_w = k_w
         self.action_mask_shape = (1*6*self.num_actions,)
