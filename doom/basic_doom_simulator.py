@@ -2,10 +2,11 @@ from __future__ import print_function
 import sys
 sys.path = ['../..'] + sys.path
 from doom_simulator import DoomSimulator
+from multi_doom_simulator import MultiDoomSimulator
 import numpy as np
 import time
 
-def create_basic_simulator(num_simulators):
+def create_basic_simulator(num_simulators=1):
 	
 	### Set all arguments
 	
@@ -115,5 +116,8 @@ def create_basic_simulator(num_simulators):
 	
 	
 	# Create and return
-	ds = MultiDoomSimulator([simulator_args] * num_simulators)
+	if num_simulators != 1:
+		ds = MultiDoomSimulator([simulator_args] * num_simulators)
+	else:
+		ds = DoomSimulator(simulator_args)
 	return ds

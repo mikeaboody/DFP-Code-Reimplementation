@@ -45,7 +45,7 @@ class Agent(object):
         self.num_exp_added += 1
         
         if not recent_obs_act_pairs.at_capacity():
-            continue
+            return
         #create an experience
         exp_obs, exp_act = recent_obs_act_pairs.index_from_back(0)[0]
         exp_label = create_label(exp_obs, self.temp_offsets, recent_obs_act_pairs)
