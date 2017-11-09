@@ -5,7 +5,7 @@ from doom_simulator import DoomSimulator
 import numpy as np
 import time
 
-def create_basic_simulator():
+def create_basic_simulator(num_simulators):
 	
 	### Set all arguments
 	
@@ -115,5 +115,5 @@ def create_basic_simulator():
 	
 	
 	# Create and return
-	ds = DoomSimulator(simulator_args)
+	ds = MultiDoomSimulator([simulator_args] * num_simulators)
 	return ds

@@ -1,5 +1,8 @@
 from basicnetwork import basicNetwork_builder
 
+#number of simulators
+num_simulators = 8
+
 #stuff the agent will use
 agent_params = {}
 agent_params["M"] = 20000
