@@ -181,7 +181,6 @@ class basicNetwork(Network):
         global_step = self.num_updates*self.batch_size
         new_lr = self.exponentially_decay(global_step)
         self.model.optimizer.lr.assign(new_lr)
-        print(new_lr)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
