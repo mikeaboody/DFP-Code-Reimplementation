@@ -83,7 +83,7 @@ def train(num_iterations):
 	doom_simulator.close_game()
 
 def test(num_iterations):
-	doom_simulator = create_basic_simulator(1)
+	doom_simulator = create_basic_simulator()
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))

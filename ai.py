@@ -38,9 +38,9 @@ class Agent(object):
         self.eps_decay_func = agent_params["eps_decay_func"]
 
     def observe(self, obs, action, simul_i=0):
-        recent_obs_act_pairs = self.dict_simulator_to_recent_obs_act_pairs.get(
-                                        simul_i,
-                                        lambda k: BoundedCache(max(self.temp_offsets) + 1))
+        if simul_i not in self.dict_simulator_to_recent_obs_act_pairs:
+            self.dict_simulator_to_recent_obs_act_pairs[simul_i] = BoundedCache(max(self.temp_offsets) + 1)
+        recent_obs_act_pairs = self.dict_simulator_to_recent_obs_act_pairs.get(simul_i)
         recent_obs_act_pairs.add((obs, action))
         self.num_exp_added += 1
         
