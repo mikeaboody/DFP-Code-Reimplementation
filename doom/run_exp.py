@@ -170,19 +170,19 @@ def train_and_test():
 			actions_taken_one_hot = [agent.act(obs, training=True) for obs in observations]
 		actions = [action_from_one_hot(action_one_hot) for action_one_hot in actions_taken_one_hot]
 		imgs, meas, _, terminated = doom_simulator.step(actions)
-		if i % freq == 0:
-			#time to test the agent on real episodes
-			test_data = run_test(num_episode_test, goal, i, agent)
-			with open(log_agent_param['test_data_file'],'a') as ep_f:
-				test_writer = csv.writer(ep_f)
-				test_writer.writerow(test_data)
 
 		for simul_i in range(num_simulators):
+			if i % freq == 0:
+				#time to test the agent on real episodes
+				test_data = run_test(num_episode_test, goal, i, agent)
+				with open(log_agent_param['test_data_file'],'a') as ep_f:
+					test_writer = csv.writer(ep_f)
+					test_writer.writerow(test_data)
 			if (terminated[simul_i]):
 				agent.signal_episode_end(simul_i)
 			else:
 				agent.observe(Observation(imgs[simul_i], meas[simul_i]), actions_taken_one_hot[simul_i], simul_i)
-		i += 1
+			i += 1
 
 	doom_simulator.close_game()
 
