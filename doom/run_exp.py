@@ -166,7 +166,7 @@ def train_and_test():
 		if i == 0:
 			actions_taken_one_hot = [agent.act(training=True) for _ in range(num_simulators)]
 		else:
-			observations = [Observation(imgs[i], meas[i]) for i in range(num_simulators)]
+			observations = [Observation(imgs[simul_i], meas[simul_i]) for simul_i in range(num_simulators)]
 			actions_taken_one_hot = [agent.act(obs, training=True) for obs in observations]
 		actions = [action_from_one_hot(action_one_hot) for action_one_hot in actions_taken_one_hot]
 		imgs, meas, _, terminated = doom_simulator.step(actions)
