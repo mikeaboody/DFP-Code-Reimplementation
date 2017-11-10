@@ -71,7 +71,6 @@ class Agent(object):
         num_actions = len(self.possible_actions)
         #get prediction from network for all actions
         prediction = self.network.predict(obs, goal)
-
         assert len(prediction) == num_actions * len(goal)
         
         action_predictions = np.split(prediction, num_actions)
