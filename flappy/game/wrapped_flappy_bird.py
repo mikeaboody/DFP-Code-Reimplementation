@@ -141,7 +141,7 @@ class GameState:
                     (self.playerx, self.playery))
 
         image_data = pygame.surfarray.array3d(pygame.display.get_surface())
-        #pygame.display.update()
+        pygame.display.update()
         self.frame_at += 1
         #print ("FPS" , FPSCLOCK.get_fps())
         FPSCLOCK.tick(FPS)

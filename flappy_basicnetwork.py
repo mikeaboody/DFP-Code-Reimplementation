@@ -182,7 +182,7 @@ class basicNetwork(Network):
         global_step = self.num_updates*self.batch_size
         new_lr = self.exponentially_decay(global_step)
         self.model.optimizer.lr.assign(new_lr)
-        print(new_lr)
+        p100irint(new_lr)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -203,8 +203,7 @@ class basicNetwork(Network):
                                                 self.perception_shape[1],
                                                 self.perception_shape[2]))
         x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
-                                                self.measurements_shape[0],
-                                                self.measurements_shape[1]))
+                                                self.measurements_shape[0]))
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
                                                 self.goals_shape[0],
                                                 self.goals_shape[1]))

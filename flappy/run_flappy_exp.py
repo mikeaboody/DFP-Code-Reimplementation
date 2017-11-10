@@ -161,14 +161,15 @@ def train_and_test():
     meas = None
     terminated = None
     i = 0
-    while i < 10:
+    while i < num_training_steps:
         if i == 0:
             action_taken_one_hot = agent.act(training=True)
         else:
             action_taken_one_hot = agent.act(Observation(img, meas), training=True)
         img, meas, _, terminated = flappy_simulator.step(action_from_one_hot(action_taken_one_hot))
-        if i % freq == 0:
+        if i % freq == 0 and i != 0:
             #time to test the agent on real episodes
+            import pdb; pdb.set_trace()
             test_data = run_test(num_episode_test, goal, i, agent)
             with open(log_agent_param['test_data_file'],'a') as ep_f:
                 test_writer = csv.writer(ep_f)
