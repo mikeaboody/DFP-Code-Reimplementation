@@ -6,6 +6,8 @@ from game import flappy_bird_utils
 import pygame.surfarray as surfarray
 from pygame.locals import *
 from itertools import cycle
+import os
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 FPS = 30
 SCREENWIDTH  = 288
@@ -141,7 +143,7 @@ class GameState:
                     (self.playerx, self.playery))
 
         image_data = pygame.surfarray.array3d(pygame.display.get_surface())
-        pygame.display.update()
+        #pygame.display.update()
         self.frame_at += 1
         #print ("FPS" , FPSCLOCK.get_fps())
         FPSCLOCK.tick(FPS)
