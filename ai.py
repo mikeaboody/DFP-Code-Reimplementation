@@ -44,6 +44,7 @@ class Agent(object):
             return
         #create an experience
         exp_obs, exp_act = self.recent_obs_act_pairs.index_from_back(0)[0]
+        
         exp_label = create_label(exp_obs, self.temp_offsets, self.recent_obs_act_pairs)
         self.experience_memory.add(Experience(exp_obs, exp_act, self.g_train, exp_label))
 

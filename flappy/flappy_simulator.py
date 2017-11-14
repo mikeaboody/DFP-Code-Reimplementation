@@ -16,7 +16,8 @@ class FlappySimulator:
         self._game = flappy.GameState()
 
     def close_game(self):
-        self._game.quit()
+        #self._game.quit()
+        pass
 
     def step(self, action=0):
         if action == [0]:

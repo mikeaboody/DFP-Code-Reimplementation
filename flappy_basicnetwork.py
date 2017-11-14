@@ -51,8 +51,8 @@ class basicNetwork(Network):
         self.preprocess_label = network_params["preprocess_label"]
         self.postprocess_label = network_params["postprocess_label"]
         self.optimizer = optimizer
-        self.batch_size = 64
-        self.perception_shape = (288, 512, 3)
+        self.batch_size = 16
+        self.perception_shape = (80, 80, 4)
         self.measurements_shape = (1,)
         self.goals_shape = (6, 1)
         self.learning_rate = 1e-04
@@ -182,7 +182,7 @@ class basicNetwork(Network):
         global_step = self.num_updates*self.batch_size
         new_lr = self.exponentially_decay(global_step)
         self.model.optimizer.lr.assign(new_lr)
-        p100irint(new_lr)
+        print(new_lr * 10e6)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -229,7 +229,7 @@ class basicNetwork(Network):
         # [goal_component_0, goal_component_1, ...]
         num_s = len(obs.sens[0])
         #need to put these into np arrays to make shape (1, original shape)
-        sens = np.array([self.preprocess_img(obs.sens)])
+        sens = obs.sens
         meas = np.array([np.expand_dims(self.preprocess_meas(obs.meas), 1)])
         goal = np.array([np.expand_dims(goal, 1)])
         prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))])[0]

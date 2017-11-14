@@ -13,6 +13,10 @@ from util import *
 from doom.log_config import log_agent_param
 from flappy.flappy_config import agent_params
 from flappy.flappy_config import network_params
+import skimage as skimage
+from skimage import transform, color, exposure
+from skimage.transform import rotate
+from skimage.viewer import ImageViewer
 
 def run_basic():
     possible_actions = [[1,0], [0,1]]
@@ -67,16 +71,34 @@ def train(num_iterations):
     meas = None
     terminated = None
     i = 0
+    action_taken_one_hot = agent.act(training=True)
+    action = action_from_one_hot(action_taken_one_hot)
+    img, meas, _, terminated = flappy_simulator.step(action)
+    img = skimage.color.rgb2gray(img)
+    img = skimage.transform.resize(img,(80,80))
+    img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+    img = img.reshape(1, 1, img.shape[0], img.shape[1])
+    four_frames = np.stack((img, img, img, img), axis=2)
+    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
+
     while i < num_iterations:
-        if i == 0:
-            action_taken_one_hot = agent.act(training=True)
-        else:
-            action_taken_one_hot = agent.act(Observation(img, meas), training=True)
-        img, meas, _, terminated = flappy_simulator.step(action_from_one_hot(action_taken_one_hot))
+
+        action_taken_one_hot = agent.act(Observation(img, meas), training=True)
+        action = action_from_one_hot(action_taken_one_hot)
+
+        img, meas, _, terminated = flappy_simulator.step(action)
+
+        img = skimage.color.rgb2gray(img)
+        img = skimage.transform.resize(img,(80,80))
+        img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+        img = img.reshape(1, 1, img.shape[0], img.shape[1])
+
+        four_frames1 = np.append(img, four_frames[:, :3, :, :], axis=1)
+
         if (terminated):
             agent.signal_episode_end()
         else:
-            agent.observe(Observation(img, meas), action_taken_one_hot)
+            agent.observe(Observation(four_frames1, meas), action_taken_one_hot)
         i += 1
 
     flappy_simulator.close_game()
@@ -161,15 +183,31 @@ def train_and_test():
     meas = None
     terminated = None
     i = 0
+    action_taken_one_hot = agent.act(training=True)
+    action = action_from_one_hot(action_taken_one_hot)
+    img, meas, _, terminated = flappy_simulator.step(action)
+    img = skimage.color.rgb2gray(img)
+    img = skimage.transform.resize(img,(80,80))
+    img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+    four_frames = np.stack((img, img, img, img), axis=2)
+    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
+
     while i < num_training_steps:
-        if i == 0:
-            action_taken_one_hot = agent.act(training=True)
-        else:
-            action_taken_one_hot = agent.act(Observation(img, meas), training=True)
-        img, meas, _, terminated = flappy_simulator.step(action_from_one_hot(action_taken_one_hot))
+
+        action_taken_one_hot = agent.act(Observation(four_frames, meas), training=True)
+        action = action_from_one_hot(action_taken_one_hot)
+
+        img, meas, _, terminated = flappy_simulator.step(action)
+
+        img = skimage.color.rgb2gray(img)
+        img = skimage.transform.resize(img,(80,80))
+        img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+        img = img.reshape(1, img.shape[0], img.shape[1], 1)
+
+        four_frames1 = np.append(img, four_frames[:, :, :, :3], axis=3)
+
         if i % freq == 0 and i != 0:
             #time to test the agent on real episodes
-            import pdb; pdb.set_trace()
             test_data = run_test(num_episode_test, goal, i, agent)
             with open(log_agent_param['test_data_file'],'a') as ep_f:
                 test_writer = csv.writer(ep_f)
@@ -178,8 +216,9 @@ def train_and_test():
         if (terminated):
             agent.signal_episode_end()
         else:
-            agent.observe(Observation(img, meas), action_taken_one_hot)
+            agent.observe(Observation(four_frames1, meas), action_taken_one_hot)
         i += 1
+        four_frames = four_frames1
 
     flappy_simulator.close_game()
 
