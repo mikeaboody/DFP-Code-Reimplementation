@@ -10,9 +10,9 @@ from network import blank_network_builder
 from abstraction import *
 from util import *
 #agent_params for the agent
-from doom.log_config import log_agent_param
-from flappy.flappy_config import agent_params
-from flappy.flappy_config import network_params
+from log_config import log_agent_param
+from flappy_config import agent_params
+from flappy_config import network_params
 
 def run_basic():
     possible_actions = [[1,0], [0,1]]
