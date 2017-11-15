@@ -46,7 +46,7 @@ def run_basic():
         print(meas)
     flappy_simulator.close_game()
 
-def log_measurements(episode_count, episode_healths, terminated, meas, i, train):
+def log_measurements(episode_count, episode_scores, terminated, meas, i, train):
     # assume there's only 1 action for now
     if train:
         freq = log_agent_param['train_eval_freq']
@@ -56,11 +56,11 @@ def log_measurements(episode_count, episode_healths, terminated, meas, i, train)
         logging.debug("Episode {0} iter {1} Score: {3}".format(episode_count, i / episode_count, meas))
     if terminated:
         logging.debug("*****Episode {0} is ending*****".format(episode_count))
-        logging.debug("*****Episode {0} has mean health {1} *****".format(episode_count, np.mean(episode_healths)))
-        episode_healths = []
+        logging.debug("*****Episode {0} has mean score {1} *****".format(episode_count, np.mean(episode_scores)))
+        episode_scores = []
         episode_count += 1
-    episode_healths.append(meas)
-    return episode_count, episode_healths
+    episode_scores.append(meas)
+    return episode_count, episode_scores
 
 
 def train(num_iterations):
@@ -124,44 +124,62 @@ def test(num_iterations):
 
 def run_test(num_episodes, goal, curr_training_iter, agent):
     """Returns a size 3 list of the metrics we want: [current # of training iterations for agent,
-        avg of avg health over episodes, avg terminal health over episodes].
+        avg of avg score over episodes, avg terminal score over episodes].
     """
+    print("Testing...")
     testing_flappy_simulator = create_basic_simulator()
     img = None
     meas = None
     terminated = False
     curr_episode = 0
     curr_episode_step = 0
-    episode_healths = []
+    episode_scores = []
     #metrics
-    avg_healths = []
-    terminal_healths = []
+    avg_scores = []
+    terminal_scores = []
 
+    action_taken_one_hot = agent.act(goal=goal)
+    action = action_from_one_hot(action_taken_one_hot)
+    img, meas, _, terminated = testing_flappy_simulator.step(action)
+    img = skimage.color.rgb2gray(img)
+    img = skimage.transform.resize(img,(80,80))
+    img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+    four_frames = np.stack((img, img, img, img), axis=2)
+    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
 
     while curr_episode < num_episodes:
-        if curr_episode_step == 0:
-            action_taken_one_hot = agent.act(goal=goal)
-        else:
-            action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
-        action_taken = action_from_one_hot(action_taken_one_hot)
-        img, meas, _, terminated = testing_flappy_simulator.step(action_taken)
+
+        action_taken_one_hot = agent.act(Observation(four_frames, meas), goal=goal)
+        action = action_from_one_hot(action_taken_one_hot)
+
+        img, meas, _, terminated = testing_flappy_simulator.step(action)
+
+        img = skimage.color.rgb2gray(img)
+        img = skimage.transform.resize(img,(80,80))
+        img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
+        img = img.reshape(1, img.shape[0], img.shape[1], 1)
+
+        four_frames1 = np.append(img, four_frames[:, :, :, :3], axis=3)
 
         curr_episode_step += 1
         if terminated:
             #collect metrics
-            avg_health = np.mean(np.array(episode_healths))
-            terminal_health = episode_healths[-1]
-            avg_healths.append(avg_health)
-            terminal_healths.append(terminal_health)
+            avg_score = np.mean(np.array(episode_scores))
+            terminal_score = episode_scores[-1]
+            avg_scores.append(avg_score)
+            terminal_scores.append(terminal_score)
 
             curr_episode += 1
             curr_episode_step = 0
-            episode_healths = []
+            episode_scores = []
+            print("Average score: {}".format(avg_score))
         else:
-            episode_healths.append(meas)
+            episode_scores.append(meas)
+        four_frames = four_frames1
     testing_flappy_simulator.close_game()
 
-    return [curr_training_iter, np.mean(np.array(avg_healths)), np.mean(np.array(terminal_healths))]
+    print("Testing finished")
+    return [curr_training_iter, np.mean(np.array(avg_scores)), np.mean(np.array(terminal_scores))]
 
 
 
@@ -174,9 +192,10 @@ def train_and_test():
     num_episode_test = log_agent_param['testing_num_episodes']
     num_training_steps = log_agent_param['training_num_steps']
     freq = log_agent_param['test_eval_freq']
+    #freq = 100
 
     flappy_simulator = create_basic_simulator()
-    goal = np.array([0,0,0,0.5,.5,1])
+    goal = np.array([1,1,1,1,1,1])
     possible_actions = enumerate_action_one_hots(1)
     agent = Agent(agent_params, possible_actions, basicNetwork_builder(network_params))
     img = None
@@ -199,6 +218,8 @@ def train_and_test():
 
         img, meas, _, terminated = flappy_simulator.step(action)
 
+        if meas > 0:
+            print("Meas is {} at {}".format(meas, i))
         img = skimage.color.rgb2gray(img)
         img = skimage.transform.resize(img,(80,80))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))

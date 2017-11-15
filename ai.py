@@ -62,11 +62,17 @@ class Agent(object):
         assert training or goal is not None
 
         if obs == None:
-            return random.choice(self.possible_actions)
+            if random.random() < 0.8:
+                return self.possible_actions[0]
+            else:
+                return self.possible_actions[1]
 
         if training:
             if biased_coin(self.eps): #random action
-                return random.choice(self.possible_actions)
+                if random.random() < 0.8:
+                    return self.possible_actions[0]
+                else:
+                    return self.possible_actions[1]
             goal = self.g_train
 
         num_actions = len(self.possible_actions)

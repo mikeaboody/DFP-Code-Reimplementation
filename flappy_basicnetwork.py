@@ -51,7 +51,7 @@ class basicNetwork(Network):
         self.preprocess_label = network_params["preprocess_label"]
         self.postprocess_label = network_params["postprocess_label"]
         self.optimizer = optimizer
-        self.batch_size = 16
+        self.batch_size = 64
         self.perception_shape = (80, 80, 4)
         self.measurements_shape = (1,)
         self.goals_shape = (6, 1)
@@ -182,7 +182,6 @@ class basicNetwork(Network):
         global_step = self.num_updates*self.batch_size
         new_lr = self.exponentially_decay(global_step)
         self.model.optimizer.lr.assign(new_lr)
-        print(new_lr * 10e6)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -216,6 +215,7 @@ class basicNetwork(Network):
         if self.num_updates % 100 == 0:
             with open("results.txt", "a") as myfile:
                 myfile.write(str(res) + "\n")
+            print("At Update {}, Loss {}".format(self.num_updates, res))
         self.num_updates += 1
 
     def predict(self, obs, goal):
