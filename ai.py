@@ -19,7 +19,7 @@ class Agent(object):
 
     def __init__(self, agent_params, possible_actions, network_builder):
         self.load_agent_params(agent_params)
-        self.recent_obs_act_pairs = BoundedCache(max(self.temp_offsets) + 1)
+        self.dict_simulator_to_recent_obs_act_pairs = {}
         self.experience_memory = BoundedCache(self.M)
         self.num_exp_added = 0
         self.eps = 1
@@ -37,14 +37,18 @@ class Agent(object):
         self.network_save_period = agent_params["network_save_period"]
         self.eps_decay_func = agent_params["eps_decay_func"]
 
-    def observe(self, obs, action):
-        self.recent_obs_act_pairs.add((obs, action))
+    def observe(self, obs, action, simul_i=0):
+        if simul_i not in self.dict_simulator_to_recent_obs_act_pairs:
+            self.dict_simulator_to_recent_obs_act_pairs[simul_i] = BoundedCache(max(self.temp_offsets) + 1)
+        recent_obs_act_pairs = self.dict_simulator_to_recent_obs_act_pairs.get(simul_i)
+        recent_obs_act_pairs.add((obs, action))
         self.num_exp_added += 1
-        if not self.recent_obs_act_pairs.at_capacity():
+        
+        if not recent_obs_act_pairs.at_capacity():
             return
         #create an experience
-        exp_obs, exp_act = self.recent_obs_act_pairs.index_from_back(0)[0]
-        exp_label = create_label(exp_obs, self.temp_offsets, self.recent_obs_act_pairs)
+        exp_obs, exp_act = recent_obs_act_pairs.index_from_back(0)[0]
+        exp_label = create_label(exp_obs, self.temp_offsets, recent_obs_act_pairs)
         self.experience_memory.add(Experience(exp_obs, exp_act, self.g_train, exp_label))
 
         if self.num_exp_added % self.k == 0:
@@ -79,5 +83,5 @@ class Agent(object):
         max_index = max(action_indeces, key=lambda i: action_predictions[i].dot(goal))
         return self.possible_actions[max_index]
 
-    def signal_episode_end(self):
-        self.recent_obs_act_pairs = BoundedCache(max(self.temp_offsets) + 1)
+    def signal_episode_end(self, simul_i):
+        del self.dict_simulator_to_recent_obs_act_pairs[simul_i]

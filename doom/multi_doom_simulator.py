@@ -2,7 +2,7 @@
 Several doom simulators running otgether
 '''
 from __future__ import print_function
-from .doom_simulator import DoomSimulator
+from doom_simulator import DoomSimulator
 
 class MultiDoomSimulator:
 	
@@ -58,3 +58,7 @@ class MultiDoomSimulator:
 		for sim in self.simulators:
 			acts.append(sim.get_random_action())
 		return acts
+
+	def close_game(self):
+		for sim in self.simulators:
+			sim.close_game()
