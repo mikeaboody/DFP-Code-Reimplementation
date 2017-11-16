@@ -77,9 +77,6 @@ def train(num_iterations):
     img = skimage.color.rgb2gray(img)
     img = skimage.transform.resize(img,(80,80))
     img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-    img = img.reshape(1, 1, img.shape[0], img.shape[1])
-    four_frames = np.stack((img, img, img, img), axis=2)
-    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
 
     while i < num_iterations:
 
@@ -91,14 +88,11 @@ def train(num_iterations):
         img = skimage.color.rgb2gray(img)
         img = skimage.transform.resize(img,(80,80))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-        img = img.reshape(1, 1, img.shape[0], img.shape[1])
-
-        four_frames1 = np.append(img, four_frames[:, :3, :, :], axis=1)
 
         if (terminated):
             agent.signal_episode_end()
         else:
-            agent.observe(Observation(four_frames1, meas), action_taken_one_hot)
+            agent.observe(Observation(img, meas), action_taken_one_hot)
         i += 1
 
     flappy_simulator.close_game()
@@ -144,12 +138,10 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
     img = skimage.color.rgb2gray(img)
     img = skimage.transform.resize(img,(80,80))
     img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-    four_frames = np.stack((img, img, img, img), axis=2)
-    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
 
     while curr_episode < num_episodes:
 
-        action_taken_one_hot = agent.act(Observation(four_frames, meas), goal=goal)
+        action_taken_one_hot = agent.act(Observation(img, meas), goal=goal)
         action = action_from_one_hot(action_taken_one_hot)
 
         img, meas, _, terminated = testing_flappy_simulator.step(action)
@@ -157,9 +149,6 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
         img = skimage.color.rgb2gray(img)
         img = skimage.transform.resize(img,(80,80))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-        img = img.reshape(1, img.shape[0], img.shape[1], 1)
-
-        four_frames1 = np.append(img, four_frames[:, :, :, :3], axis=3)
 
         curr_episode_step += 1
         if terminated:
@@ -175,7 +164,6 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
             print("Average score: {}".format(avg_score))
         else:
             episode_scores.append(meas)
-        four_frames = four_frames1
     testing_flappy_simulator.close_game()
 
     print("Testing finished")
@@ -208,12 +196,10 @@ def train_and_test():
     img = skimage.color.rgb2gray(img)
     img = skimage.transform.resize(img,(80,80))
     img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-    four_frames = np.stack((img, img, img, img), axis=2)
-    four_frames = four_frames.reshape(1, four_frames.shape[0], four_frames.shape[1], four_frames.shape[2])
 
     while i < num_training_steps:
 
-        action_taken_one_hot = agent.act(Observation(four_frames, meas), training=True)
+        action_taken_one_hot = agent.act(Observation(img, meas), training=True)
         action = action_from_one_hot(action_taken_one_hot)
 
         img, meas, _, terminated = flappy_simulator.step(action)
@@ -223,9 +209,6 @@ def train_and_test():
         img = skimage.color.rgb2gray(img)
         img = skimage.transform.resize(img,(80,80))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
-        img = img.reshape(1, img.shape[0], img.shape[1], 1)
-
-        four_frames1 = np.append(img, four_frames[:, :, :, :3], axis=3)
 
         if i % freq == 0 and i != 0:
             #time to test the agent on real episodes
@@ -237,9 +220,8 @@ def train_and_test():
         if (terminated):
             agent.signal_episode_end()
         else:
-            agent.observe(Observation(four_frames1, meas), action_taken_one_hot)
+            agent.observe(Observation(img, meas), action_taken_one_hot)
         i += 1
-        four_frames = four_frames1
 
     flappy_simulator.close_game()
 
