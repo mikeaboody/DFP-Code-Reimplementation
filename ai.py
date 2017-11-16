@@ -5,6 +5,7 @@ from util import *
 from abstraction import *
 from network import Network
 from bounded_cache import BoundedCache
+from experience_creator import ExperienceCreator
 
 class Agent(object):
     """
@@ -19,7 +20,7 @@ class Agent(object):
 
     def __init__(self, agent_params, possible_actions, network_builder):
         self.load_agent_params(agent_params)
-        self.dict_simulator_to_recent_obs_act_pairs = {}
+        self.dict_simulator_to_experience_creators = {}
         self.experience_memory = BoundedCache(self.M)
         self.num_exp_added = 0
         self.eps = 1
@@ -38,18 +39,15 @@ class Agent(object):
         self.eps_decay_func = agent_params["eps_decay_func"]
 
     def observe(self, obs, action, simul_i=0):
-        if simul_i not in self.dict_simulator_to_recent_obs_act_pairs:
-            self.dict_simulator_to_recent_obs_act_pairs[simul_i] = BoundedCache(max(self.temp_offsets) + 1)
-        recent_obs_act_pairs = self.dict_simulator_to_recent_obs_act_pairs.get(simul_i)
-        recent_obs_act_pairs.add((obs, action))
+        if simul_i not in self.dict_simulator_to_experience_creators:
+            self.dict_simulator_to_experience_creators[simul_i] = ExperienceCreator(self.g_train, self.temp_offsets)
         self.num_exp_added += 1
-        
-        if not recent_obs_act_pairs.at_capacity():
+        experience_creator = self.dict_simulator_to_experience_creators.get(simul_i)
+
+        new_experience = experience_creator.add_and_get_experience(obs, action)
+        if new_experience is None:
             return
-        #create an experience
-        exp_obs, exp_act = recent_obs_act_pairs.index_from_back(0)[0]
-        exp_label = create_label(exp_obs, self.temp_offsets, recent_obs_act_pairs)
-        self.experience_memory.add(Experience(exp_obs, exp_act, self.g_train, exp_label))
+        self.experience_memory.add(new_experience)
 
         if self.num_exp_added % self.k == 0:
             sampled_exp = self.experience_memory.sample(self.N)
@@ -84,4 +82,4 @@ class Agent(object):
         return self.possible_actions[max_index]
 
     def signal_episode_end(self, simul_i):
-        del self.dict_simulator_to_recent_obs_act_pairs[simul_i]
+        self.dict_simulator_to_experience_creators[simul_i].reset()
