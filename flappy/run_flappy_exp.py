@@ -136,7 +136,7 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
     action = action_from_one_hot(action_taken_one_hot)
     img, meas, _, terminated = testing_flappy_simulator.step(action)
     img = skimage.color.rgb2gray(img)
-    img = skimage.transform.resize(img,(80,80))
+    img = skimage.transform.resize(img,(80,80,1))
     img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
 
     while curr_episode < num_episodes:
@@ -147,7 +147,7 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
         img, meas, _, terminated = testing_flappy_simulator.step(action)
 
         img = skimage.color.rgb2gray(img)
-        img = skimage.transform.resize(img,(80,80))
+        img = skimage.transform.resize(img,(80,80,1))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
 
         curr_episode_step += 1
@@ -194,7 +194,7 @@ def train_and_test():
     action = action_from_one_hot(action_taken_one_hot)
     img, meas, _, terminated = flappy_simulator.step(action)
     img = skimage.color.rgb2gray(img)
-    img = skimage.transform.resize(img,(80,80))
+    img = skimage.transform.resize(img,(80,80,1))
     img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
 
     while i < num_training_steps:
@@ -207,7 +207,7 @@ def train_and_test():
         if meas > 0:
             print("Meas is {} at {}".format(meas, i))
         img = skimage.color.rgb2gray(img)
-        img = skimage.transform.resize(img,(80,80))
+        img = skimage.transform.resize(img,(80,80,1))
         img = skimage.exposure.rescale_intensity(img, out_range=(0, 255))
 
         if i % freq == 0 and i != 0:

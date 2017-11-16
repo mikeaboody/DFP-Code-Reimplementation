@@ -52,7 +52,7 @@ class basicNetwork(Network):
         self.postprocess_label = network_params["postprocess_label"]
         self.optimizer = optimizer
         self.batch_size = 64
-        self.perception_shape = (80, 80)
+        self.perception_shape = (80, 80, 1)
         self.measurements_shape = (1,)
         self.goals_shape = (6, 1)
         self.learning_rate = 1e-04
@@ -86,6 +86,8 @@ class basicNetwork(Network):
     # override
     def build_network(self):
         if self.load_from_backing_file and os.path.isfile(self.backing_file) :
+            import pdb; pdb.set_trace()
+            print("Loaded network from save file.")
             self.model = load_model(self.backing_file)
             return
         # perception layer
@@ -199,7 +201,8 @@ class basicNetwork(Network):
             y_train.append(label)
         x_train[0] = np.array(x_train[0]).reshape((self.batch_size,
                                                 self.perception_shape[0],
-                                                self.perception_shape[1]))
+                                                self.perception_shape[1],
+                                                self.perception_shape[2]))
         x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
                                                 self.measurements_shape[0]))
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
@@ -228,7 +231,7 @@ class basicNetwork(Network):
         # [goal_component_0, goal_component_1, ...]
         num_s = len(obs.sens[0])
         #need to put these into np arrays to make shape (1, original shape)
-        sens = obs.sens
+        sens = np.array([obs.sens])
         meas = np.array([np.expand_dims(self.preprocess_meas(obs.meas), 1)])
         goal = np.array([np.expand_dims(goal, 1)])
         prediction_t_a = self.model.predict([sens, meas, goal, np.ones((num_s, 1*6*self.num_actions))])[0]
