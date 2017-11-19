@@ -58,26 +58,26 @@ def create_experience():
 	exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
 	return exp
 
-size = 49999
-lst = [create_experience() for _ in range(size)]
-exp_ser = ExperienceSerializer("exp", 10000)
-for exp in lst:
-	exp_ser.serialize_experience(exp)
-exp_ser.flush()
-exp_deser = ExperienceDeserializer("exp")
-gen = exp_deser.deserialized_generator()
+# size = 49999
+# lst = [create_experience() for _ in range(size)]
+# exp_ser = ExperienceSerializer("exp", 10000)
+# for exp in lst:
+# 	exp_ser.serialize_experience(exp)
+# exp_ser.flush()
+# exp_deser = ExperienceDeserializer("exp")
+# gen = exp_deser.deserialized_generator()
 
-# serialize_experiences(lst, "exp.npy")
-# deserialized_lst = deserialize_experiences("exp.npy")
-passs = True
-for i in range(len(lst)):
-	exp = lst[i]
-	copy = gen.next()
-	# same = np.array_equal(exp.sens(), copy.sens()) and np.array_equal(exp.meas(), copy.meas()) and np.array_equal(exp.action(), copy.action()) and np.array_equal(exp.goal(), copy.goal()) and np.array_equal(exp.label(), copy.label())
-	same = exp == copy
-	if not same:
-		print("BAD")
-		passs = True
-print(passs)
+# # serialize_experiences(lst, "exp.npy")
+# # deserialized_lst = deserialize_experiences("exp.npy")
+# passs = True
+# for i in range(len(lst)):
+# 	exp = lst[i]
+# 	copy = gen.next()
+# 	# same = np.array_equal(exp.sens(), copy.sens()) and np.array_equal(exp.meas(), copy.meas()) and np.array_equal(exp.action(), copy.action()) and np.array_equal(exp.goal(), copy.goal()) and np.array_equal(exp.label(), copy.label())
+# 	same = exp == copy
+# 	if not same:
+# 		print("BAD")
+# 		passs = True
+# print(passs)
 
 # import pdb; pdb.set_trace()
