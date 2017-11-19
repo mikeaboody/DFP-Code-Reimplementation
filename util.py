@@ -58,24 +58,12 @@ def deserialize_experiences(filename):
 	return exp_lst
 
 def create_experience():
-    sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(1,))
-    goal = np.random.random_sample(size=(6,))
-    # last value indicate index of action
-    label = np.random.random_sample(size=(6,))
-    obs = Observation(sens, meas)
-    exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
-    return exp
-
-lst = [create_experience() for _ in range(2000)]
-serialize_experiences(lst, "exp.npy")
-deserialized_lst = deserialize_experiences("exp.npy")
-for i in range(len(lst)):
-    exp = lst[i]
-    copy = deserialized_lst[i]
-    # same = np.array_equal(exp.sens(), copy.sens()) and np.array_equal(exp.meas(), copy.meas()) and np.array_equal(exp.action(), copy.action()) and np.array_equal(exp.goal(), copy.goal()) and np.array_equal(exp.label(), copy.label())
-    same = exp == copy
-    if not same:
-        print("BAD")
-
-import pdb; pdb.set_trace()
+	sens = np.random.random_sample(size=(84,84,1))
+	meas = np.random.random_sample(size=(1,))
+	goal = np.random.random_sample(size=(6,))
+	# last value indicate index of action
+	label = np.random.random_sample(size=(6,))
+	obs = Observation(sens, meas)
+	exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
+	return exp
+	
