@@ -90,7 +90,7 @@ def subset_generator(gen, size=-1):
 			res = next(gen)
 			yield res
 			i += 1
-		except StopIteration():
+		except StopIteration:
 			return
 
 def experience_to_data(exp, preprocess_img, preprocess_meas, preprocess_label, num_actions):
@@ -107,6 +107,6 @@ def experience_to_data_generator(exp_gen, preprocess_img, preprocess_meas, prepr
 		try:
 			res = experience_to_data(next(exp_gen), preprocess_img, preprocess_meas, preprocess_label, num_actions)
 			yield res
-		except StopIteration():
+		except StopIteration:
 			return
 
