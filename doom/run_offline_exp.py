@@ -71,8 +71,11 @@ def train_and_test_offline(exp_folder):
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
-	for i in range(num_training_steps):
-		if i % freq == 0:
+	step_size = agent.k
+	while i < num_training_steps:
+		before = i % freq
+		after = (i + step_size) % freq
+		if after < before or i == 0:
 			test_data = run_test(num_episode_test, goal, i, agent)
 			with open(filename,'a') as ep_f:
 					test_writer = csv.writer(ep_f)
