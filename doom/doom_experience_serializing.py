@@ -86,6 +86,6 @@ def serialize_experiences_from_random_agent(folder, chunk_size, num_steps):
 			i += 1
 	exp_serializer.flush()
 	doom_simulator.close_game()
-
+serialize_experiences_from_dfp_agent("dfp_exp", 250, 5000)
 # serialize_experiences_from_dfp_agent("dfp_exp", 25000, 5000000)
-serialize_experiences_from_random_agent("random_exp", 25000, 5000000)
+# serialize_experiences_from_random_agent("random_exp", 25000, 5000000)

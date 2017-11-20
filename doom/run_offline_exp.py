@@ -5,7 +5,7 @@ import os
 import shutil
 from ai import Agent
 from basic_doom_simulator import create_basic_simulator
-from basicnetwork import offlineBasicNetwork_builder
+from offlinebasicnetwork import offlineBasicNetwork_builder
 from network import blank_network_builder
 from abstraction import *
 from util import *
@@ -64,7 +64,7 @@ def train_and_test_offline(folder, samples_per_epoch):
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
 	agent.offline_training(folder, samples_per_epoch, 1)
-	run_test(num_episode_test, goal, samples_per_epoch, agent)
+	print(run_test(5, goal, samples_per_epoch, agent))
 	doom_simulator.close_game()
 
-train_and_test_offline("dfp_exp", 100)
+train_and_test_offline("dfp_exp", 10000)

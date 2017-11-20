@@ -86,7 +86,7 @@ class Agent(object):
     def offline_training(self, folder, samples_per_epoch, epoch):
         experience_generator = ExperienceDeserializer(folder).deserialized_generator()
         self.network.set_samples_per_epoch(samples_per_epoch)
-        self.network.offline_update_weights(experience_generator, epoch=epoch)
+        self.network.offline_update_weights(experience_generator, epoches=epoch)
 
     def signal_episode_end(self, simul_i):
         self.dict_simulator_to_experience_creators[simul_i].reset()

@@ -99,7 +99,7 @@ def experience_to_data(exp, preprocess_img, preprocess_meas, preprocess_label, n
     g = exp.goal()
     label, mask = pad_label(exp.label(), exp.a, num_actions)
     label = preprocess_label(label)
-    return ([s, m, g, mask], label)
+    return [np.array([s]), np.array([np.expand_dims(m, 1)]), np.array([np.expand_dims(g, 1)]), np.array([mask])], np.array([label])
 
 
 def experience_to_data_generator(exp_gen, preprocess_img, preprocess_meas, preprocess_label, num_actions):

@@ -1,6 +1,7 @@
 from network import Network
 from abstraction import *
 from util import *
+from keras.callbacks import LearningRateScheduler
 import numpy as np
 import pandas as pd
 import math
@@ -27,7 +28,7 @@ class offlineBasicNetwork(Network):
     to do is implement these methods.
     """
     def __init__(self, network_params, backing_file=None, load_from_backing_file=False, optimizer="Adam", k_h=[8, 4, 3], k_w=[8, 4, 3], decay_steps=250000):
-        super(basicNetwork, self).__init__(network_params, backing_file, load_from_backing_file)
+        super(offlineBasicNetwork, self).__init__(network_params, backing_file, load_from_backing_file)
         self.num_actions = network_params["num_actions"]
         self.preprocess_img = network_params["preprocess_img"]
         self.preprocess_meas = network_params["preprocess_meas"]
@@ -67,7 +68,7 @@ class offlineBasicNetwork(Network):
     def set_batch_size(size):
         self.batch_size = 64
 
-    def set_samples_per_epoch(size):
+    def set_samples_per_epoch(self,size):
         self.samples_per_epoch = size
 
     # override
@@ -225,12 +226,11 @@ class offlineBasicNetwork(Network):
         data_generator = experience_to_data_generator(exp_gen, self.preprocess_img, self.preprocess_meas, self.preprocess_label, self.num_actions)
         lrate = LearningRateScheduler(self.epoch_based_exponentially_decay)
         callbacks_list = [lrate]
-        model.fit_generator(data_generator,
+        self.model.fit_generator(data_generator,
                             samples_per_epoch = self.samples_per_epoch,
                             nb_epoch = epoches,
                             verbose=2,
                             shuffle=True,
-                            show_accuracy=True,
                             callbacks=callbacks_list,
                             validation_data=validation_data)
 
@@ -287,18 +287,4 @@ def create_experience(bn):
     obs = Observation(sens, meas)
     exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
     return exp
-
-experiences = [create_experience(bn) for _ in range(64)]
-# # import pdb; pdb.set_trace()
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-
-
-# a = create_obs_goal_pair(bn)
-# bn.predict(a[0], a[1])
-
 
