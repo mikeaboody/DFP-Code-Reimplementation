@@ -57,7 +57,7 @@ def deserialize_experiences(filename):
 	exp_lst = [Experience.from_array(serialized_arr[i]) for i in range(len(serialized_arr))]
 	return exp_lst
 
-def create_experience():
+def create_random_experience():
 	sens = np.random.random_sample(size=(84,84,1))
 	meas = np.random.random_sample(size=(1,))
 	goal = np.random.random_sample(size=(6,))
