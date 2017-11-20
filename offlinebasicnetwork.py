@@ -67,6 +67,9 @@ class basicNetwork(Network):
     def set_batch_size(size):
         self.batch_size = 64
 
+    def set_samples_per_epoch(size):
+        self.samples_per_epoch = size
+
     # override
     def build_network(self):
         if self.load_from_backing_file and os.path.isfile(self.backing_file) :

@@ -83,9 +83,10 @@ class Agent(object):
         max_index = max(action_indeces, key=lambda i: action_predictions[i].dot(goal))
         return self.possible_actions[max_index]
 
-    def offline_training(self, folder):
+    def offline_training(self, folder, samples_per_epoch, epoch):
         experience_generator = ExperienceDeserializer(folder).deserialized_generator()
-        self.network.offline_update_weights(experience_generator, 20)
+        self.network.set_samples_per_epoch(samples_per_epoch)
+        self.network.offline_update_weights(experience_generator, epoch=epoch)
 
 
 
