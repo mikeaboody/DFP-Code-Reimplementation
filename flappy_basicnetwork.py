@@ -20,6 +20,23 @@ import os.path
 #     print(y_pred.eval(session=tf.Session()))
 #     return -K.dot(y_true,K.transpose(y_pred))
 
+
+def pad_label(label, action, num_actions):
+    # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
+    # assume action is 0-indexed
+    # this way dot product  0 out everything that's irrelevant
+    goal = label[:len(label)].flatten()
+    an = action_number(action)
+    action_index = int(an*len(goal))
+    new_label = np.zeros(len(goal)*num_actions)
+    mask = np.zeros(len(goal)*num_actions)
+    new_label[action_index:action_index+len(goal)] = goal
+    mask[action_index:action_index+len(goal)] = [1]*len(goal)
+    return new_label, mask
+
+def msra_stddev(x, k_h, k_w): 
+    return 1/math.sqrt(0.5*k_w*k_h*x._keras_shape[-1])
+
 class basicNetwork(Network):
     """
     A wrapper class for our neural network. This will make it easier
@@ -35,8 +52,8 @@ class basicNetwork(Network):
         self.postprocess_label = network_params["postprocess_label"]
         self.optimizer = optimizer
         self.batch_size = 64
-        self.perception_shape = (84, 84, 1)
-        self.measurements_shape = (1, 1)
+        self.perception_shape = (288, 512, 3)
+        self.measurements_shape = (1,)
         self.goals_shape = (6, 1)
         self.learning_rate = 1e-04
         self.decay_rate = 0.3
@@ -49,7 +66,6 @@ class basicNetwork(Network):
         self.num_updates = 0
         self.decay_steps = decay_steps
         self.build_network()
-        self.samples_per_epoch = 60000
 
 
     def is_network_defined(self):
@@ -96,7 +112,8 @@ class basicNetwork(Network):
                                    bias_initializer=Constant(value=0))(perception_flattened)
         # measurement layer
         measurement_input = Input(shape=self.measurements_shape)
-        measurement_flatten = Flatten()(measurement_input)
+#        measurement_flatten = Flatten()(measurement_input)
+        measurement_flatten = measurement_input
         measurements_fc = Dense(128,
                                 kernel_initializer=TruncatedNormal(stddev=self.msra_coef*msra_stddev(measurement_flatten, 1, 1)),
                                 bias_initializer=Constant(value=0))(measurement_flatten)
@@ -154,18 +171,7 @@ class basicNetwork(Network):
             opt = Adam(lr=self.learning_rate, beta_1=0.95, beta_2=0.999, epsilon=1e-04)
         self.model.compile(loss='mean_squared_error', optimizer=opt)
 
-    def step_based_exponentially_decay(self, global_step):
-        decayed_learning_rate = self.learning_rate * (math.pow(self.decay_rate, global_step / self.decay_steps))
-        return decayed_learning_rate
-
-    def epoch_based_exponentially_decay(self, epoch):
-        # initial_lrate = 0.1
-        # drop = 0.5
-        # epochs_drop = 10.0
-        # lrate = initial_lrate * math.pow(drop, math.floor((1+epoch)/epochs_drop))
-        # prevent dropping too fast by 1 magnitude
-        self.num_updates = epoch*self.samples_per_epoch/10
-        global_step = self.num_updates*self.batch_size
+    def exponentially_decay(self, global_step):
         decayed_learning_rate = self.learning_rate * (math.pow(self.decay_rate, global_step / self.decay_steps))
         return decayed_learning_rate
 
@@ -173,10 +179,10 @@ class basicNetwork(Network):
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
-        
         global_step = self.num_updates*self.batch_size
-        new_lr = self.step_based_exponentially_decay(global_step)
+        new_lr = self.exponentially_decay(global_step)
         self.model.optimizer.lr.assign(new_lr)
+        print(new_lr)
         assert self.batch_size == len(exps) and self.model != None
         x_train = [[], [], [], []]
         y_train = []
@@ -197,8 +203,7 @@ class basicNetwork(Network):
                                                 self.perception_shape[1],
                                                 self.perception_shape[2]))
         x_train[1] = np.array(x_train[1]).reshape((self.batch_size,
-                                                self.measurements_shape[0],
-                                                self.measurements_shape[1]))
+                                                self.measurements_shape[0]))
         x_train[2] = np.array(x_train[2]).reshape((self.batch_size,
                                                 self.goals_shape[0],
                                                 self.goals_shape[1]))
@@ -212,24 +217,6 @@ class basicNetwork(Network):
             with open("results.txt", "a") as myfile:
                 myfile.write(str(res) + "\n")
         self.num_updates += 1
-
-    def offline_update_weights(self, exp_gen, epoches, validation_generator=None):
-        if validation_generator is not None:
-            validation_data = validation_generator()
-        else:
-            validation_data = None
-        # learning schedule callback
-        data_generator = experience_to_data_generator(exp_gen, self.preprocess_img, self.preprocess_meas, self.preprocess_label, self.num_actions)
-        lrate = LearningRateScheduler(self.epoch_based_exponentially_decay)
-        callbacks_list = [lrate]
-        model.fit_generator(data_generator,
-                            samples_per_epoch = self.samples_per_epoch,
-                            nb_epoch = epoches,
-                            verbose=2,
-                            shuffle=True,
-                            show_accuracy=True,
-                            callbacks=callbacks_list,
-                            validation_data=validation_data)
 
     def predict(self, obs, goal):
         """
@@ -285,14 +272,14 @@ def create_experience(bn):
     exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
     return exp
 
-experiences = [create_experience(bn) for _ in range(64)]
-# # import pdb; pdb.set_trace()
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
-bn.update_weights(experiences)
+# experiences = [create_experience(bn) for _ in range(64)]
+# # # import pdb; pdb.set_trace()
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
+# bn.update_weights(experiences)
 
 
 # a = create_obs_goal_pair(bn)
