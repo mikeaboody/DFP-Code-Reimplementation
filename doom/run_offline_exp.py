@@ -72,6 +72,7 @@ def train_and_test_offline(exp_folder):
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
 	step_size = agent.k
+	i = 0
 	while i < num_training_steps:
 		before = i % freq
 		after = (i + step_size) % freq
