@@ -67,3 +67,46 @@ def create_random_experience():
 	exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
 	return exp
 	
+def pad_label(label, action, num_actions):
+    # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
+    # assume action is 0-indexed
+    # this way dot product  0 out everything that's irrelevant
+    goal = label[:len(label)].flatten()
+    an = action_number(action)
+    action_index = int(an*len(goal))
+    new_label = np.zeros(len(goal)*num_actions)
+    mask = np.zeros(len(goal)*num_actions)
+    new_label[action_index:action_index+len(goal)] = goal
+    mask[action_index:action_index+len(goal)] = [1]*len(goal)
+    return new_label, mask
+
+def msra_stddev(x, k_h, k_w): 
+    return 1/math.sqrt(0.5*k_w*k_h*x._keras_shape[-1])
+
+def subset_generator(gen, size=-1):
+	i = 0
+	while size == -1 or i < size:
+		try:
+			res = gen.next()
+			yield res
+			i += 1
+		except StopIteration():
+			return
+
+def experience_to_data(exp, preprocess_img, preprocess_meas, preprocess_label, num_actions):
+    s = preprocess_img(exp.sens())
+    m = preprocess_meas(exp.meas())
+    g = exp.goal()
+    label, mask = pad_label(exp.label(), exp.a, num_actions)
+    label = preprocess_label(label)
+    return ([s, m, g, mask], label)
+
+
+def experience_to_data_generator(exp_gen, preprocess_img, preprocess_meas, preprocess_label, num_actions):
+	while True:
+		try:
+			res = experience_to_data(exp_gen.next(), preprocess_img, preprocess_meas, preprocess_label, num_actions)
+			yield res
+		except StopIteration():
+			return
+
