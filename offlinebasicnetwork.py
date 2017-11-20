@@ -20,7 +20,7 @@ import os.path
 #     print(y_pred.eval(session=tf.Session()))
 #     return -K.dot(y_true,K.transpose(y_pred))
 
-class basicNetwork(Network):
+class offlineBasicNetwork(Network):
     """
     A wrapper class for our neural network. This will make it easier
     to implement the network in different frameworks. All a network needs
@@ -262,8 +262,8 @@ class basicNetwork(Network):
         return max(custom_objective, key=lambda x:x[1])
 
 
-def basicNetwork_builder(network_params):
-    return lambda: basicNetwork(network_params, backing_file="bn.h5", load_from_backing_file= True)
+def offlineBasicNetwork_builder(network_params):
+    return lambda: offlineBasicNetwork(network_params)
 
 # bn = basicNetwork_builder({"num_actions": 8,
 #                             "preprocess_img": np.array([]),
