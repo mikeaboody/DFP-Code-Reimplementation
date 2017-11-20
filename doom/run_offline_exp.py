@@ -56,15 +56,11 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
 
 	return [curr_training_iter, np.mean(np.array(avg_healths)), np.mean(np.array(terminal_healths))]
 
-def train_and_test_offline(folder, samples_per_epoch):
-	num_episode_test = log_agent_param['testing_num_episodes']
-
-	doom_simulator = create_basic_simulator(num_simulators)
+def train_and_test_offline(folder, samples_per_epoch, num_episode_test):
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
 	agent.offline_training(folder, samples_per_epoch, 1)
-	print(run_test(5, goal, samples_per_epoch, agent))
-	doom_simulator.close_game()
+	print(run_test(num_episode_test, goal, samples_per_epoch, agent))
 
-train_and_test_offline("dfp_exp", 10000)
+train_and_test_offline("dfp_exp", 10000, 5)
