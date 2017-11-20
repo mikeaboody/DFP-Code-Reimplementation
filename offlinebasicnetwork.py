@@ -20,23 +20,6 @@ import os.path
 #     print(y_pred.eval(session=tf.Session()))
 #     return -K.dot(y_true,K.transpose(y_pred))
 
-
-def pad_label(label, action, num_actions):
-    # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
-    # assume action is 0-indexed
-    # this way dot product  0 out everything that's irrelevant
-    goal = label[:len(label)].flatten()
-    an = action_number(action)
-    action_index = int(an*len(goal))
-    new_label = np.zeros(len(goal)*num_actions)
-    mask = np.zeros(len(goal)*num_actions)
-    new_label[action_index:action_index+len(goal)] = goal
-    mask[action_index:action_index+len(goal)] = [1]*len(goal)
-    return new_label, mask
-
-def msra_stddev(x, k_h, k_w): 
-    return 1/math.sqrt(0.5*k_w*k_h*x._keras_shape[-1])
-
 class basicNetwork(Network):
     """
     A wrapper class for our neural network. This will make it easier
@@ -230,15 +213,16 @@ class basicNetwork(Network):
                 myfile.write(str(res) + "\n")
         self.num_updates += 1
 
-    def offline_update_weights(self, train_generator, epoches, validation_generator=None):
+    def offline_update_weights(self, exp_gen, epoches, validation_generator=None):
         if validation_generator is not None:
             validation_data = validation_generator()
         else:
             validation_data = None
         # learning schedule callback
+        data_generator = experience_to_data_generator(exp_gen, self.preprocess_img, self.preprocess_meas, self.preprocess_label, self.num_actions)
         lrate = LearningRateScheduler(self.epoch_based_exponentially_decay)
         callbacks_list = [lrate]
-        model.fit_generator(train_generator(),
+        model.fit_generator(data_generator,
                             samples_per_epoch = self.samples_per_epoch,
                             nb_epoch = epoches,
                             verbose=2,
