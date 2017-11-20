@@ -14,6 +14,7 @@ from doom_config import agent_params
 from doom_config import network_params
 from log_config import log_agent_param
 from doom_config import num_simulators
+from experience_serialization import ExperienceDeserializer
 
 def run_test(num_episodes, goal, curr_training_iter, agent):
 	"""Returns a size 3 list of the metrics we want: [current # of training iterations for agent,
@@ -56,11 +57,25 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
 
 	return [curr_training_iter, np.mean(np.array(avg_healths)), np.mean(np.array(terminal_healths))]
 
-def train_and_test_offline(folder, samples_per_epoch, num_episode_test):
+def train_and_test_offline(exp_folder):
+	try:
+		shutil.rmtree(os.path.dirname(log_agent_param['test_offline_data_file']))
+	except OSError:
+		pass
+	os.makedirs(os.path.dirname(log_agent_param['test_offline_data_file']))
+	num_episode_test = log_agent_param['testing_num_episodes']
+	num_training_steps = log_agent_param['training_num_steps']
+	freq = log_agent_param['test_eval_freq']
+	exp_des = ExperienceDeserializer(exp_folder).deserialized_generator()
 	goal = np.array([0,0,0,0.5,.5,1])
 	possible_actions = enumerate_action_one_hots(3)
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
-	agent.offline_training(folder, samples_per_epoch, 1)
-	print(run_test(num_episode_test, goal, samples_per_epoch, agent))
+	for i in range(num_training_steps):
+		if i % freq == 0:
+			test_data = run_test(num_episode_test, goal, i, agent))
+			with open(log_agent_param['test_offline_data_file'],'a') as ep_f:
+					test_writer = csv.writer(ep_f)
+					test_writer.writerow(test_data)
+		agent.offline_training(exp_des)
 
-train_and_test_offline("dfp_exp", 10000, 5)
+train_and_test_offline("dfp_exp")
