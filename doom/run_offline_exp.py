@@ -82,5 +82,6 @@ def train_and_test_offline(exp_folder):
 					test_writer = csv.writer(ep_f)
 					test_writer.writerow(test_data)
 		agent.offline_training(exp_des)
+		i += step_size
 
 train_and_test_offline("dfp_exp")
