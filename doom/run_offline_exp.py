@@ -58,11 +58,12 @@ def run_test(num_episodes, goal, curr_training_iter, agent):
 	return [curr_training_iter, np.mean(np.array(avg_healths)), np.mean(np.array(terminal_healths))]
 
 def train_and_test_offline(exp_folder):
+	filename = exp_folder + "-" + log_agent_param['test_offline_data_file']
 	try:
-		shutil.rmtree(os.path.dirname(log_agent_param['test_offline_data_file']))
+		shutil.rmtree(os.path.dirname(filename))
 	except OSError:
 		pass
-	os.makedirs(os.path.dirname(log_agent_param['test_offline_data_file']))
+	os.makedirs(os.path.dirname(filename))
 	num_episode_test = log_agent_param['testing_num_episodes']
 	num_training_steps = log_agent_param['training_num_steps']
 	freq = log_agent_param['test_eval_freq']
@@ -72,8 +73,8 @@ def train_and_test_offline(exp_folder):
 	agent = Agent(agent_params, possible_actions, offlineBasicNetwork_builder(network_params))
 	for i in range(num_training_steps):
 		if i % freq == 0:
-			test_data = run_test(num_episode_test, goal, i, agent))
-			with open(log_agent_param['test_offline_data_file'],'a') as ep_f:
+			test_data = run_test(num_episode_test, goal, i, agent)
+			with open(filename,'a') as ep_f:
 					test_writer = csv.writer(ep_f)
 					test_writer.writerow(test_data)
 		agent.offline_training(exp_des)
