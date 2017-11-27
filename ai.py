@@ -6,6 +6,8 @@ from abstraction import *
 from network import Network
 from bounded_cache import BoundedCache
 from experience_creator import ExperienceCreator
+from experience_serialization import *
+
 
 class Agent(object):
     """
@@ -80,6 +82,16 @@ class Agent(object):
         action_indeces = list(range(num_actions))
         max_index = max(action_indeces, key=lambda i: action_predictions[i].dot(goal))
         return self.possible_actions[max_index]
+
+    def offline_training(self, exp_des):
+        batch = []
+        for _ in range(self.k):
+            try:
+                batch.append(next(exp_des))
+            except StopIteration:
+                break
+        if len(batch) == self.k:
+            self.network.update_weights(batch)
 
     def signal_episode_end(self, simul_i):
         self.dict_simulator_to_experience_creators[simul_i].reset()
