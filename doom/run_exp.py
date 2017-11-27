@@ -140,5 +140,4 @@ def train_and_test():
 			i += 1
 
 	doom_simulator.close_game()
-
-train_and_test()
+	
