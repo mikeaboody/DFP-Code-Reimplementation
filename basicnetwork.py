@@ -16,27 +16,6 @@ from keras.layers.advanced_activations import LeakyReLU
 from keras.optimizers import Adam
 import os.path
 
-#     def custom_objective(y_true, y_pred):
-#     print(y_pred.eval(session=tf.Session()))
-#     return -K.dot(y_true,K.transpose(y_pred))
-
-
-def pad_label(label, action, num_actions):
-    # make label [0, 0, 0, label, 0, 0, 0] (0 for all other actions)
-    # assume action is 0-indexed
-    # this way dot product  0 out everything that's irrelevant
-    goal = label[:len(label)].flatten()
-    an = action_number(action)
-    action_index = int(an*len(goal))
-    new_label = np.zeros(len(goal)*num_actions)
-    mask = np.zeros(len(goal)*num_actions)
-    new_label[action_index:action_index+len(goal)] = goal
-    mask[action_index:action_index+len(goal)] = [1]*len(goal)
-    return new_label, mask
-
-def msra_stddev(x, k_h, k_w): 
-    return 1/math.sqrt(0.5*k_w*k_h*x._keras_shape[-1])
-
 class basicNetwork(Network):
     """
     A wrapper class for our neural network. This will make it easier
@@ -66,22 +45,6 @@ class basicNetwork(Network):
         self.num_updates = 0
         self.decay_steps = decay_steps
         self.build_network()
-
-
-    def is_network_defined(self):
-        return self.model != None
-
-    def set_perception_shape(shape):
-        self.perception_shape = shape
-
-    def set_measurement_shape(shape):
-        self.measurements_shape = shape
-
-    def set_goals_shape(shape):
-        self.goals_shape = shape
-
-    def set_batch_size(size):
-        self.batch_size = 64
 
     # override
     def build_network(self):
@@ -174,7 +137,6 @@ class basicNetwork(Network):
         decayed_learning_rate = self.learning_rate * (math.pow(self.decay_rate, global_step / self.decay_steps))
         return decayed_learning_rate
 
-
     def update_weights(self, exps):
         # please make sure that exps is a batch of the proper size (in basic it's 64)
         # also need to double check how exps is structured not sure rn
@@ -222,10 +184,6 @@ class basicNetwork(Network):
         obs is of the form <s_t, m_t>, where s_t is raw sensory input and
         m_t is a set of measurements
         """
-        # assuming that obs is a vector of vectors that looks like
-        # [[sensory_input_0, sensory_input_1, ...], [measurement_0, measurement_1, ...]]
-        # and goal is a vector that looks like
-        # [goal_component_0, goal_component_1, ...]
         num_s = len(obs.sens[0])
         #need to put these into np arrays to make shape (1, original shape)
         sens = np.array([self.preprocess_img(obs.sens)])
@@ -247,41 +205,3 @@ class basicNetwork(Network):
 
 def basicNetwork_builder(network_params):
     return lambda: basicNetwork(network_params, backing_file="bn.h5", load_from_backing_file= True)
-
-# bn = basicNetwork_builder({"num_actions": 8,
-#                             "preprocess_img": np.array([]),
-#                             "preprocess_meas": np.array([]),
-#                             "preprocess_label": np.array([]),
-#                             "postprocess_label": np.array([])})()
-
-def create_obs_goal_pair(bn):
-    sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(1,))
-    goal = np.random.random_sample(size=(6,))
-    obs = Observation(sens, meas)
-    return obs, goal
-
-def create_experience(bn):
-    sens = np.random.random_sample(size=(84,84,1))
-    meas = np.random.random_sample(size=(1,))
-    goal = np.random.random_sample(size=(6,))
-    # last value indicate index of action
-    label = np.random.random_sample(size=(6,))
-    obs = Observation(sens, meas)
-    exp = Experience(obs, action_to_one_hot([0,1,0]), goal, label)
-    return exp
-
-# experiences = [create_experience(bn) for _ in range(64)]
-# # # import pdb; pdb.set_trace()
-# bn.update_weights(experiences)
-# bn.update_weights(experiences)
-# bn.update_weights(experiences)
-# bn.update_weights(experiences)
-# bn.update_weights(experiences)
-# bn.update_weights(experiences)
-
-
-# a = create_obs_goal_pair(bn)
-# bn.predict(a[0], a[1])
-
-

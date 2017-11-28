@@ -15,51 +15,6 @@ from doom_config import network_params
 from log_config import log_agent_param
 from doom_config import num_simulators
 
-def run_basic():
-	possible_actions = [[1,0,0], [0,1,0], [0,0,1]]
-	network_params["num_actions"] = 3
-	doom_simulator = create_basic_simulator()
-	agent = Agent(agent_params, possible_actions, blank_network_builder(network_params))
-	agent.eps = 0
-	img = None
-	meas = None
-	terminated = None
-
-	i = 0
-	while i < 1000:
-		if i == 0:
-			action_taken = agent.act(training=True)
-		else:
-			action_taken = agent.act(Observation(img, meas), training=True)
-		print(i, action_taken)
-		img, meas, _, terminated = doom_simulator.step(action_taken)
-		
-		if (terminated):
-			agent.signal_episode_end()
-		else:
-			agent.observe(Observation(img, meas), action_taken)
-		i += 1
-
-		print(meas)
-	doom_simulator.close_game()
-
-def log_measurements(episode_count, episode_healths, terminated, meas, i, train):
-	# assume there's only 1 action for now
-	if train:
-		freq = log_agent_param['train_eval_freq']
-	else:
-		freq = log_agent_param['test_eval_freq']
-	if i % freq == 0 and not terminated:
-		logging.debug("Episode {0} iter {1} Health: {3}".format(episode_count, i / episode_count, meas[0]))
-	if terminated:
-		logging.debug("*****Episode {0} is ending*****".format(episode_count))
-		logging.debug("*****Episode {0} has mean health {1} *****".format(episode_count, np.mean(episode_healths)))
-		episode_healths = []
-		episode_count += 1
-	episode_healths.append(meas[0])
-	return episode_count, episode_healths
-
-
 def train(num_iterations):
 	doom_simulator = create_basic_simulator()
 	possible_actions = enumerate_action_one_hots(3)
@@ -185,5 +140,4 @@ def train_and_test():
 			i += 1
 
 	doom_simulator.close_game()
-
-train_and_test()
+	
