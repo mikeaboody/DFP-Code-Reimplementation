@@ -1,3 +1,5 @@
+#NOTE: code taken from https://github.com/IntelVCL/DirectFuturePrediction
+
 '''
 Several doom simulators running otgether
 '''

@@ -1,3 +1,5 @@
+#NOTE: code for simulator taken from https://github.com/IntelVCL/DirectFuturePrediction
+
 '''
 ViZDoom wrapper
 '''

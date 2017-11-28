@@ -6,6 +6,8 @@ from multi_doom_simulator import MultiDoomSimulator
 import numpy as np
 import time
 
+#NOTE: most of code taken from https://github.com/IntelVCL/DirectFuturePrediction
+
 def create_basic_simulator(num_simulators=1):
 	
 	## Simulator
